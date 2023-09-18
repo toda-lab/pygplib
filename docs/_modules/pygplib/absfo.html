@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pygplib.absfo &mdash; pygplib  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> pygplib
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../pygplib.html">pygplib package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pygplib</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pygplib.absfo</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pygplib.absfo</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Class of first-order logic of graphs with True, False, and no other atom&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">pygplib.absexpr</span> <span class="kn">import</span> <span class="n">AbsExpr</span>
+<span class="kn">from</span> <span class="nn">pygplib.absprop</span> <span class="kn">import</span> <span class="n">AbsProp</span>
+<span class="kn">from</span> <span class="nn">pygplib.name</span>    <span class="kn">import</span> <span class="n">NameMgr</span>
+
+<div class="viewcode-block" id="AbsFo"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo">[docs]</a><span class="k">class</span> <span class="nc">AbsFo</span><span class="p">(</span><span class="n">AbsProp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;First-order logic of graphs with true and false and no other atoms.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        In the current implementation, syntactically identical subexpressions</span>
+<span class="sd">        are shared. We have to keep it in mind that this might become source of</span>
+<span class="sd">        bugs.</span>
+<span class="sd">        For instance, consider (E x x) &amp; x.</span>
+<span class="sd">        In this formula, the second occurrence of x is a bound variable, and</span>
+<span class="sd">        third occurrence is a free variable.</span>
+<span class="sd">        In the current implementation, despite different semantics,</span>
+<span class="sd">        these variables are shared, that is, they are represented as a single</span>
+<span class="sd">        object in the representation of the formula.</span>
+<span class="sd">        We do this for the sake of simplicity, but this might become source of</span>
+<span class="sd">        bugs. When we apply some operation to such a formula, we sometimes</span>
+<span class="sd">        have to consider difference in semantics.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        _FORALL:   string, representing universal quantifier.</span>
+<span class="sd">        _EXISTS:   string, representing existential quantifier.</span>
+<span class="sd">        _ATOM_TAGS:  tuple of strings, representing types of atom.</span>
+<span class="sd">        _BINOP_TAGS: tuple of strings, representing types of binary operator.</span>
+<span class="sd">        _UNOP_TAGS: tuple of strings, representing types of uniary operator.</span>
+<span class="sd">        _QF_TAGS:   tuple of strings, representing types of quantifier.</span>
+<span class="sd">        _EXPR_TAGS: tuple of available tags in this class.</span>
+<span class="sd">        _BOUND_VAR_POS: beginning position of the field of bound variable.</span>
+<span class="sd">        _AUX_LEN:   length of aux field.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Tag-related Variables and Methods</span>
+    <span class="n">_FORALL</span> <span class="o">=</span> <span class="s2">&quot;A&quot;</span>
+    <span class="n">_EXISTS</span> <span class="o">=</span> <span class="s2">&quot;E&quot;</span>
+
+    <span class="n">_ATOM_TAGS</span>  <span class="o">=</span> <span class="n">AbsProp</span><span class="o">.</span><span class="n">_ATOM_TAGS</span>
+    <span class="n">_BINOP_TAGS</span> <span class="o">=</span> <span class="n">AbsProp</span><span class="o">.</span><span class="n">_BINOP_TAGS</span>
+    <span class="n">_UNOP_TAGS</span>  <span class="o">=</span> <span class="n">AbsProp</span><span class="o">.</span><span class="n">_UNOP_TAGS</span>
+    <span class="n">_QF_TAGS</span>    <span class="o">=</span> <span class="p">(</span><span class="n">_FORALL</span><span class="p">,</span> <span class="n">_EXISTS</span><span class="p">)</span>
+
+    <span class="n">_EXPR_TAGS</span>  <span class="o">=</span> <span class="n">_ATOM_TAGS</span> <span class="o">+</span> <span class="n">_BINOP_TAGS</span> <span class="o">+</span> <span class="n">_UNOP_TAGS</span> <span class="o">+</span> <span class="n">_QF_TAGS</span>
+
+    <span class="n">_BOUND_VAR_POS</span> <span class="o">=</span> <span class="n">AbsProp</span><span class="o">.</span><span class="n">_AUX_LEN</span>
+    <span class="n">_AUX_LEN</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">AbsProp</span><span class="o">.</span><span class="n">_AUX_LEN</span>
+
+<div class="viewcode-block" id="AbsFo.get_forall_tag"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.get_forall_tag">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_forall_tag</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets tag of forall.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_FORALL</span></div>
+
+<div class="viewcode-block" id="AbsFo.get_exists_tag"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.get_exists_tag">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_exists_tag</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;&quot;Gets tag of exists.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_EXISTS</span></div>
+
+
+    <span class="c1"># Constructor-related Methods</span>
+<div class="viewcode-block" id="AbsFo.forall"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.forall">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">forall</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">left</span><span class="p">:</span> <span class="n">AbsExpr</span><span class="p">,</span> <span class="n">bvar</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the formula obtained by applying universal quantifier.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            left:   formula to be quantified</span>
+<span class="sd">            bvar:    index of variable to be bounded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">is_variable</span><span class="p">(</span><span class="n">bvar</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>\
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="n">bvar</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not a variable symbol.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_FORALL</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">aux</span><span class="o">=</span><span class="p">(</span><span class="n">bvar</span><span class="p">,))</span></div>
+
+<div class="viewcode-block" id="AbsFo.exists"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.exists">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">exists</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">left</span><span class="p">:</span> <span class="n">AbsExpr</span><span class="p">,</span> <span class="n">bvar</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the formula obtained by applying existential quantifier.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            left:   formula to be quantified</span>
+<span class="sd">            bvar:    index of variable to be bounded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">is_variable</span><span class="p">(</span><span class="n">bvar</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>\
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="n">bvar</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not a variable symbol.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_EXISTS</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">aux</span><span class="o">=</span><span class="p">(</span><span class="n">bvar</span><span class="p">,))</span></div>
+
+<div class="viewcode-block" id="AbsFo.qf"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.qf">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">qf</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">left</span><span class="p">:</span> <span class="n">AbsExpr</span><span class="p">,</span> <span class="n">bvar</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the formula obtained by applying the tag-specified quantifier.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tag:    tag of quantifier</span>
+<span class="sd">            left:   formula to be quantified</span>
+<span class="sd">            bvar:    index of variable to be bounded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_QF_TAGS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>\
+                <span class="sa">f</span><span class="s2">&quot;Expression tag, </span><span class="si">{</span><span class="n">tag</span><span class="si">}</span><span class="s2">, is not available in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">aux</span><span class="o">=</span><span class="p">(</span><span class="n">bvar</span><span class="p">,))</span></div>
+
+
+    <span class="c1"># Instance Methods</span>
+<div class="viewcode-block" id="AbsFo.get_bound_var"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.get_bound_var">[docs]</a>    <span class="k">def</span> <span class="nf">get_bound_var</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the index of bound variable.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_qf_term</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>\
+                <span class="s2">&quot;The top-most operator of the formula is not quantifier.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aux</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_BOUND_VAR_POS</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="AbsFo.is_forall_term"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.is_forall_term">[docs]</a>    <span class="k">def</span> <span class="nf">is_forall_term</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is the top-most operator the universal quantifier ?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">()</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_FORALL</span></div>
+
+<div class="viewcode-block" id="AbsFo.is_exists_term"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.is_exists_term">[docs]</a>    <span class="k">def</span> <span class="nf">is_exists_term</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is the top-most operator the existential quantifier ?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">()</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_EXISTS</span></div>
+
+<div class="viewcode-block" id="AbsFo.is_qf_term"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.is_qf_term">[docs]</a>    <span class="k">def</span> <span class="nf">is_qf_term</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is the top-most operator universal or existential quantifier ?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">()</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_QF_TAGS</span></div>
+
+<div class="viewcode-block" id="AbsFo.compute_nnf_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.compute_nnf_step">[docs]</a>    <span class="k">def</span> <span class="nf">compute_nnf_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">negated</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">s</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">],</span> <span class="n">t</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs NNF computation for this object.&quot;&quot;&quot;</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">():</span> <span class="c1"># not A f = E not f</span>
+            <span class="n">bvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bound_var</span><span class="p">()</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">z</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">bvar</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">negated</span> <span class="k">else</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">forall</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">bvar</span><span class="p">)])</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">negated</span><span class="p">,</span> <span class="n">f</span><span class="p">])</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists_term</span><span class="p">():</span> <span class="c1"># not E f = A not f</span>
+            <span class="n">bvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bound_var</span><span class="p">()</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">z</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">forall</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">bvar</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">negated</span> <span class="k">else</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">bvar</span><span class="p">)])</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">negated</span><span class="p">,</span> <span class="n">f</span><span class="p">])</span>
+            <span class="k">return</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compute_nnf_step</span><span class="p">(</span><span class="n">negated</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbsFo.get_free_vars_and_consts_pre_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.get_free_vars_and_consts_pre_step">[docs]</a>    <span class="k">def</span> <span class="nf">get_free_vars_and_consts_pre_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>\
+        <span class="n">bound_vars</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">free_vars</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs computation in prefix order for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists_term</span><span class="p">():</span>
+            <span class="n">bound_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_bound_var</span><span class="p">())</span>
+            <span class="k">return</span></div>
+
+<div class="viewcode-block" id="AbsFo.get_free_vars_and_consts_post_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.get_free_vars_and_consts_post_step">[docs]</a>    <span class="k">def</span> <span class="nf">get_free_vars_and_consts_post_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>\
+        <span class="n">bound_vars</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">free_vars</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs computation in postfix order for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists_term</span><span class="p">():</span>
+            <span class="n">bound_vars</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_bound_var</span><span class="p">())</span>
+            <span class="k">return</span></div>
+
+<div class="viewcode-block" id="AbsFo.substitute_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.substitute_step">[docs]</a>    <span class="k">def</span> <span class="nf">substitute_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">assoc</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs substitution for this object.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_neg_term</span><span class="p">():</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">neg</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_land_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_lor_term</span><span class="p">()</span>\
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_implies_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_iff_term</span><span class="p">():</span>
+            <span class="n">left</span>  <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">2</span><span class="p">))]</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">binop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(),</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists_term</span><span class="p">():</span>
+            <span class="n">bvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bound_var</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">bvar</span> <span class="o">==</span> <span class="n">x</span><span class="p">:</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">qf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(),</span> <span class="n">g</span><span class="p">,</span> <span class="n">bvar</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">assert</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="AbsFo.reduce_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.reduce_step">[docs]</a>    <span class="k">def</span> <span class="nf">reduce_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assoc</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs reduce compuation for this object.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">():</span>
+            <span class="n">bvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bound_var</span><span class="p">()</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span>
+
+            <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">():</span>
+                <span class="c1"># A x T = T</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+                <span class="k">return</span>
+
+            <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="o">.</span><span class="n">get_domain_size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># A x F = F if there is at least one vertex.</span>
+                        <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># A x F = T if there is no vertex.</span>
+                        <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+                    <span class="k">return</span>
+
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">forall</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">bvar</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists_term</span><span class="p">():</span>
+            <span class="n">bvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bound_var</span><span class="p">()</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span>
+
+            <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="o">.</span><span class="n">get_domain_size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># E x T = T if there is at least one vertex.</span>
+                        <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># E x T = F if there is no vertex.</span>
+                        <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+                    <span class="k">return</span>
+
+            <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+                <span class="c1"># E x F = F</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+                <span class="k">return</span>
+
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">bvar</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reduce_step</span><span class="p">(</span><span class="n">assoc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbsFo.make_str_pre_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.make_str_pre_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_pre_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Makes string in prefix order for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists_term</span><span class="p">():</span>
+            <span class="n">out</span>  <span class="o">=</span> <span class="s2">&quot;(&quot;</span>
+            <span class="n">out</span> <span class="o">+=</span>  <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_forall_tag</span><span class="p">()</span> \
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">()</span> <span class="k">else</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_exists_tag</span><span class="p">()</span>
+            <span class="n">out</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span>
+            <span class="n">out</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_bound_var</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">out</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span>
+            <span class="k">return</span> <span class="n">out</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_str_pre_step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AbsFo.make_str_in_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.make_str_in_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_in_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Makes string in infix order for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists_term</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_str_in_step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AbsFo.make_str_post_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.make_str_post_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_post_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Makes string in postfix order for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists_term</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;)&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_str_post_step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AbsFo.make_node_str_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absfo.AbsFo.make_node_str_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_node_str_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Makes string of this object for DOT print.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists_term</span><span class="p">():</span>
+            <span class="n">bvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bound_var</span><span class="p">()</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="n">bvar</span><span class="p">)</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">A </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2">&quot;</span> \
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_forall_term</span><span class="p">()</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">E </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_node_str_step</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Takahisa Toda.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

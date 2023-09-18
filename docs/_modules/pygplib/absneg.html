@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pygplib.absneg &mdash; pygplib  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> pygplib
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../pygplib.html">pygplib package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pygplib</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pygplib.absneg</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pygplib.absneg</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Class of abstract logical formula with true/false constants and negation&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">pygplib.absexpr</span> <span class="kn">import</span> <span class="n">AbsExpr</span><span class="p">,</span> <span class="n">IndexGen</span>
+
+
+<div class="viewcode-block" id="AbsNeg"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg">[docs]</a><span class="k">class</span> <span class="nc">AbsNeg</span><span class="p">(</span><span class="n">AbsExpr</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class of abstract expressions with true and false and negation only.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        _NEG:   string, representing logical negation.</span>
+<span class="sd">        _TRUE_CONST:    string, representing true.</span>
+<span class="sd">        _FALSE_CONST:   string, representing false.</span>
+<span class="sd">        _ATOM_TAGS:  tuple of strings, representing types of atom.</span>
+<span class="sd">        _BINOP_TAGS: tuple of strings, representing types of binary operator.</span>
+<span class="sd">        _UNOP_TAGS: tuple of strings, representing types of uniary operator.</span>
+<span class="sd">        _EXPR_TAGS: tuple of available tags in this class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Tag-related Variables and Methods</span>
+    <span class="n">_NEG</span>         <span class="o">=</span> <span class="s2">&quot;!&quot;</span>
+    <span class="n">_TRUE_CONST</span>  <span class="o">=</span> <span class="s2">&quot;T&quot;</span>
+    <span class="n">_FALSE_CONST</span> <span class="o">=</span> <span class="s2">&quot;F&quot;</span>
+
+    <span class="n">_ATOM_TAGS</span>   <span class="o">=</span> <span class="n">AbsExpr</span><span class="o">.</span><span class="n">_ATOM_TAGS</span> <span class="o">+</span> <span class="p">(</span><span class="n">_TRUE_CONST</span><span class="p">,</span> <span class="n">_FALSE_CONST</span><span class="p">)</span>
+    <span class="n">_BINOP_TAGS</span>  <span class="o">=</span> <span class="n">AbsExpr</span><span class="o">.</span><span class="n">_BINOP_TAGS</span>
+    <span class="n">_UNOP_TAGS</span>   <span class="o">=</span> <span class="p">(</span><span class="n">_NEG</span><span class="p">,)</span>
+
+    <span class="n">_EXPR_TAGS</span>   <span class="o">=</span> <span class="n">_ATOM_TAGS</span> <span class="o">+</span> <span class="n">_BINOP_TAGS</span> <span class="o">+</span> <span class="n">_UNOP_TAGS</span>
+
+<div class="viewcode-block" id="AbsNeg.get_neg_tag"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.get_neg_tag">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_neg_tag</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets tag of negation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_NEG</span></div>
+
+<div class="viewcode-block" id="AbsNeg.get_true_const_tag"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.get_true_const_tag">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_true_const_tag</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets tag of true constant.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_TRUE_CONST</span></div>
+
+<div class="viewcode-block" id="AbsNeg.get_false_const_tag"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.get_false_const_tag">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_false_const_tag</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets tag of false constant.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_FALSE_CONST</span></div>
+
+
+    <span class="c1"># Constructor-related Methods</span>
+<div class="viewcode-block" id="AbsNeg.neg"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.neg">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">neg</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">left</span><span class="p">:</span> <span class="n">AbsExpr</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the formula obtained by applying negation to the operand.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            left:   the formula to be negated</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_NEG</span><span class="p">,</span> <span class="n">left</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbsNeg.true_const"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.true_const">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">true_const</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the true atom, the atom that always evaluates to true.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_TRUE_CONST</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbsNeg.false_const"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.false_const">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">false_const</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the false atom, the atom that always evaluates to false.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_FALSE_CONST</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Instance Methods</span>
+<div class="viewcode-block" id="AbsNeg.is_neg_term"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.is_neg_term">[docs]</a>    <span class="k">def</span> <span class="nf">is_neg_term</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is the top-most operator the logical negation ?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">()</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_NEG</span></div>
+
+<div class="viewcode-block" id="AbsNeg.is_true_atom"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.is_true_atom">[docs]</a>    <span class="k">def</span> <span class="nf">is_true_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is it the true atom ?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">()</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_TRUE_CONST</span></div>
+
+<div class="viewcode-block" id="AbsNeg.is_false_atom"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.is_false_atom">[docs]</a>    <span class="k">def</span> <span class="nf">is_false_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is it the false atom ?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">()</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_FALSE_CONST</span></div>
+
+<div class="viewcode-block" id="AbsNeg.is_const_atom"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.is_const_atom">[docs]</a>    <span class="k">def</span> <span class="nf">is_const_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is it either the true atom or the false atom ?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AbsNeg.compute_nnf_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.compute_nnf_step">[docs]</a>    <span class="k">def</span> <span class="nf">compute_nnf_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">negated</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">s</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">],</span> <span class="n">t</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Perform NNF computation for this object.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_neg_term</span><span class="p">():</span>  <span class="c1"># not not f = f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">[</span><span class="ow">not</span> <span class="n">negated</span><span class="p">,</span> <span class="n">f</span><span class="p">]</span> <span class="p">)</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">]</span> <span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">negated</span><span class="p">:</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="k">lambda</span> <span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">neg</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="k">lambda</span> <span class="p">:</span> <span class="bp">self</span><span class="p">]</span> <span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compute_nnf_step</span><span class="p">(</span><span class="n">negated</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbsNeg.compute_cnf_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.compute_cnf_step">[docs]</a>    <span class="k">def</span> <span class="nf">compute_cnf_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">igen</span><span class="p">:</span> <span class="n">IndexGen</span><span class="p">,</span> <span class="n">assoc</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">cnf</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs CNF computation for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_neg_term</span><span class="p">():</span> <span class="c1"># a &lt;-&gt; -b :  (-a or -b) and (a or b)</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">igen</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span>
+
+            <span class="n">cnf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">(</span><span class="o">-</span><span class="n">a</span><span class="p">,</span><span class="o">-</span><span class="n">b</span><span class="p">)</span> <span class="p">)</span>
+            <span class="n">cnf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">(</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="p">)</span>
+
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">a</span>
+            <span class="k">return</span>
+
+        <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">(),</span>\
+            <span class="s2">&quot;compute_cnf_step() assumes reduced formulas&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compute_cnf_step</span><span class="p">(</span><span class="n">igen</span><span class="p">,</span> <span class="n">assoc</span><span class="p">,</span> <span class="n">cnf</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbsNeg.reduce_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.reduce_step">[docs]</a>    <span class="k">def</span> <span class="nf">reduce_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assoc</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs reduce computation for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_neg_term</span><span class="p">():</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span>
+            <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">():</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+                <span class="k">return</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">neg</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="k">return</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reduce_step</span><span class="p">(</span><span class="n">assoc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbsNeg.make_str_pre_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.make_str_pre_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_pre_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Makes string in prefix order for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_neg_term</span><span class="p">():</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_neg_tag</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+            <span class="k">return</span> <span class="n">out</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_true_const_tag</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_false_const_tag</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_str_pre_step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AbsNeg.make_str_in_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.make_str_in_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_in_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Makes string in infix order for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_neg_term</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_str_in_step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AbsNeg.make_str_post_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.make_str_post_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_post_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Makes string in postfix order for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_neg_term</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;)&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_str_post_step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AbsNeg.make_node_str_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.absneg.AbsNeg.make_node_str_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_node_str_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Makes string of this object for DOT print.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_neg_term</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;NOT&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;T&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;F&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_node_str_step</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Takahisa Toda.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

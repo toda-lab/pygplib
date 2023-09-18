@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pygplib.fo &mdash; pygplib  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> pygplib
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../pygplib.html">pygplib package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pygplib</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pygplib.fo</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pygplib.fo</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Class of first-order logic of graphs&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+
+<span class="c1"># The Pyparsing Module</span>
+<span class="c1"># https://github.com/pyparsing/pyparsing/blob/master/docs/HowToUsePyparsing.rst</span>
+<span class="c1"># https://pyparsing-docs.readthedocs.io/en/latest/pyparsing.html</span>
+<span class="kn">import</span> <span class="nn">pyparsing</span> <span class="k">as</span> <span class="nn">pp</span>
+
+<span class="kn">from</span> <span class="nn">pygplib.absexpr</span>  <span class="kn">import</span> <span class="n">AbsExpr</span>
+<span class="kn">from</span> <span class="nn">pygplib.prop</span>     <span class="kn">import</span> <span class="n">Prop</span>
+<span class="kn">from</span> <span class="nn">pygplib.absfo</span>    <span class="kn">import</span> <span class="n">AbsFo</span>
+<span class="kn">from</span> <span class="nn">pygplib.st</span>       <span class="kn">import</span> <span class="n">RelSt</span>
+<span class="kn">from</span> <span class="nn">pygplib.name</span>     <span class="kn">import</span> <span class="n">NameMgr</span>
+
+
+<div class="viewcode-block" id="Fo"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo">[docs]</a><span class="k">class</span> <span class="nc">Fo</span><span class="p">(</span><span class="n">AbsFo</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Expression of First-order logic of graphs</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        In the current implementation, syntactically identical subexpressions</span>
+<span class="sd">        are shared. We have to keep it in mind that this might become source of</span>
+<span class="sd">        bugs.</span>
+<span class="sd">        For instance, consider (E x x) &amp; x.</span>
+<span class="sd">        In this formula, the second occurrence of x is a bound variable, and</span>
+<span class="sd">        third occurrence is a free variable.</span>
+<span class="sd">        In the current implementation, despite different semantics,</span>
+<span class="sd">        these variables are shared, that is, they are represented as a single</span>
+<span class="sd">        object in the representation of the formula.</span>
+<span class="sd">        We do this for the sake of simplicity, but this might become source of</span>
+<span class="sd">        bugs. When we apply some operation to such a formula, we sometimes</span>
+<span class="sd">        have to consider difference in semantics.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        _EDG:   string, representing adjacency relation of vertices.</span>
+<span class="sd">        _EQ:    string, representing equality relation of vertices.</span>
+<span class="sd">        _ATOM_TAGS:  tuple of strings, representing types of atom.</span>
+<span class="sd">        _BINOP_TAGS: tuple of strings, representing types of binary operator.</span>
+<span class="sd">        _UNOP_TAGS: tuple of strings, representing types of uniary operator.</span>
+<span class="sd">        _QF_TAGS:   tuple of strings, representing types of quantifier.</span>
+<span class="sd">        _EXPR_TAGS: tuple of available tags in this class.</span>
+<span class="sd">        _ATOM_BEGIN_POS: beginning position of the atom part of the aux field.</span>
+<span class="sd">        _ATOM_LEN:  length of the atom part of the aux field.</span>
+<span class="sd">        _AUX_LEN:   length of the aux field.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Tag-related Variables and Methods</span>
+    <span class="n">_EDG</span> <span class="o">=</span> <span class="s2">&quot;edg&quot;</span>
+    <span class="n">_EQ</span>  <span class="o">=</span> <span class="s2">&quot;=&quot;</span>
+
+    <span class="n">_ATOM_TAGS</span>  <span class="o">=</span> <span class="n">AbsFo</span><span class="o">.</span><span class="n">_ATOM_TAGS</span> <span class="o">+</span> <span class="p">(</span><span class="n">_EDG</span><span class="p">,</span> <span class="n">_EQ</span><span class="p">)</span>
+    <span class="n">_BINOP_TAGS</span> <span class="o">=</span> <span class="n">AbsFo</span><span class="o">.</span><span class="n">_BINOP_TAGS</span>
+    <span class="n">_UNOP_TAGS</span>  <span class="o">=</span> <span class="n">AbsFo</span><span class="o">.</span><span class="n">_UNOP_TAGS</span>
+    <span class="n">_QF_TAGS</span>    <span class="o">=</span> <span class="n">AbsFo</span><span class="o">.</span><span class="n">_QF_TAGS</span>
+
+    <span class="n">_EXPR_TAGS</span>  <span class="o">=</span> <span class="n">_ATOM_TAGS</span> <span class="o">+</span> <span class="n">_BINOP_TAGS</span> <span class="o">+</span> <span class="n">_UNOP_TAGS</span> <span class="o">+</span> <span class="n">_QF_TAGS</span>
+
+    <span class="n">_ATOM_BEGIN_POS</span> <span class="o">=</span> <span class="n">AbsFo</span><span class="o">.</span><span class="n">_AUX_LEN</span>
+    <span class="n">_ATOM_LEN</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">_AUX_LEN</span> <span class="o">=</span> <span class="n">_ATOM_LEN</span> <span class="o">+</span> <span class="n">AbsFo</span><span class="o">.</span><span class="n">_AUX_LEN</span>
+
+<div class="viewcode-block" id="Fo.get_edg_tag"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.get_edg_tag">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_edg_tag</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets tag of edg.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_EDG</span></div>
+
+<div class="viewcode-block" id="Fo.get_eq_tag"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.get_eq_tag">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_eq_tag</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets tag of eq.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_EQ</span></div>
+
+
+    <span class="c1"># Constructor-related Methods</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_normalize_aux</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">aux</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Normalize the order of arguments in relation symbol.</span>
+
+<span class="sd">        The order is determined based on the order of names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">aux</span> <span class="o">==</span> <span class="p">():</span>
+            <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span><span class="o">*</span><span class="bp">cls</span><span class="o">.</span><span class="n">_AUX_LEN</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">aux</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">aux</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">aux</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> \
+            <span class="ow">and</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="n">aux</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="n">aux</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">aux</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">aux</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">aux</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">aux</span>
+
+<div class="viewcode-block" id="Fo.edg"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.edg">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">edg</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the atomic formula of the form edg(x,y).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: index of (variable or constant) symbol</span>
+<span class="sd">            y: index of (variable or constant) symbol</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">NameMgr</span><span class="o">.</span><span class="n">has_name</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">has_name</span><span class="p">(</span><span class="n">y</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Specified index of edg has no name.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_EDG</span><span class="p">,</span> <span class="n">aux</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Fo.eq"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.eq">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">eq</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the atomic formula of the form x=y.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: index of (variable or constant) symbol</span>
+<span class="sd">            y: index of (variable or constant) symbol</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">NameMgr</span><span class="o">.</span><span class="n">has_name</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">has_name</span><span class="p">(</span><span class="n">y</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Specified index of eq has no name.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_EQ</span><span class="p">,</span> <span class="n">aux</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Fo.atom"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.atom">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">atom</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the tag-specified atomic formula.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: index of (variable or constant) symbol (or 0 for true or false)</span>
+<span class="sd">            y: index of (variable or constant) symbol (or 0 for true or false)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_ATOM_TAGS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>\
+                <span class="sa">f</span><span class="s2">&quot;Expression tag, </span><span class="si">{</span><span class="n">tag</span><span class="si">}</span><span class="s2">, is not available in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">aux</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span></div>
+
+
+    <span class="c1"># Instance Methods</span>
+<div class="viewcode-block" id="Fo.get_atom_value"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.get_atom_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_atom_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the term, specified by position, of the atomic formula.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            i: position of term (1 or 2)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_ATOM_LEN</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>\
+                <span class="sa">f</span><span class="s2">&quot;Value index should range from 1 to </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_ATOM_LEN</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aux</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_ATOM_BEGIN_POS</span> <span class="o">+</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Fo.is_edg_atom"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.is_edg_atom">[docs]</a>    <span class="k">def</span> <span class="nf">is_edg_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is it an atom of the form edg(x,y) ?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">()</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_EDG</span></div>
+
+<div class="viewcode-block" id="Fo.is_eq_atom"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.is_eq_atom">[docs]</a>    <span class="k">def</span> <span class="nf">is_eq_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is it an atom of the form x=y ?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">()</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_EQ</span></div>
+
+<div class="viewcode-block" id="Fo.compute_nnf_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.compute_nnf_step">[docs]</a>    <span class="k">def</span> <span class="nf">compute_nnf_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">negated</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">s</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">],</span> <span class="n">t</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs NNF computation for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_eq_atom</span><span class="p">():</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="k">lambda</span> <span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">neg</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="n">negated</span> <span class="k">else</span> <span class="bp">self</span><span class="p">])</span>
+            <span class="k">return</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compute_nnf_step</span><span class="p">(</span><span class="n">negated</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Fo.substitute_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.substitute_step">[docs]</a>    <span class="k">def</span> <span class="nf">substitute_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">assoc</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs substitution for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_eq_atom</span><span class="p">():</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">op</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">x</span><span class="p">:</span>
+                <span class="n">op</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span>
+            <span class="k">if</span> <span class="n">op</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">x</span><span class="p">:</span>
+                <span class="n">op</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">atom</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(),</span> <span class="n">op</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">op</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">return</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">substitute_step</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">assoc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Fo.get_free_vars_and_consts_pre_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.get_free_vars_and_consts_pre_step">[docs]</a>    <span class="k">def</span> <span class="nf">get_free_vars_and_consts_pre_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>\
+        <span class="n">bound_vars</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">free_vars</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs computatoin for this object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_eq_atom</span><span class="p">():</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bound_vars</span><span class="p">:</span>
+                <span class="n">free_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">w</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bound_vars</span><span class="p">:</span>
+                <span class="n">free_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_free_vars_and_consts_pre_step</span><span class="p">(</span><span class="n">bound_vars</span><span class="p">,</span> <span class="n">free_vars</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Fo.reduce_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.reduce_step">[docs]</a>    <span class="k">def</span> <span class="nf">reduce_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assoc</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs reduce computatoin for this object.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">():</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+
+            <span class="k">if</span> <span class="n">op</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">op</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>  <span class="c1"># edg(x,x) is always false regardless of graphs</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+                <span class="k">return</span>
+
+            <span class="k">if</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">is_constant</span><span class="p">(</span><span class="n">op</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">is_constant</span><span class="p">(</span><span class="n">op</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="mi">1</span> <span class="k">if</span> <span class="n">v</span><span class="o">*</span><span class="n">w</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span>\
+                        <span class="nb">zip</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="o">.</span><span class="n">get_code</span><span class="p">(</span><span class="n">op</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>\
+                            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="o">.</span><span class="n">get_code</span><span class="p">(</span><span class="n">op</span><span class="p">[</span><span class="mi">1</span><span class="p">]))])</span>
+
+                    <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">count</span> <span class="o">&lt;</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="o">.</span><span class="n">get_code_length</span><span class="p">():</span>
+                        <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+                        <span class="k">return</span>
+                    <span class="c1"># count == type(self).st.get_code_length() cannot occur</span>
+                    <span class="c1"># because we already checked if op[0] == op[1].</span>
+                    <span class="k">assert</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span>
+
+                    <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+                    <span class="k">return</span>
+
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_eq_atom</span><span class="p">():</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+
+            <span class="k">if</span> <span class="n">op</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">op</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>  <span class="c1"># x=x is always true regardless of graphs</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+                <span class="k">return</span>
+
+            <span class="k">if</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">is_constant</span><span class="p">(</span><span class="n">op</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">is_constant</span><span class="p">(</span><span class="n">op</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span>\
+                        <span class="nb">zip</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="o">.</span><span class="n">get_code</span><span class="p">(</span><span class="n">op</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>\
+                            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="o">.</span><span class="n">get_code</span><span class="p">(</span><span class="n">op</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+                        <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">w</span><span class="p">:</span>
+                            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+                            <span class="k">return</span>
+                    <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+                    <span class="k">return</span>
+
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="k">return</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reduce_step</span><span class="p">(</span><span class="n">assoc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Fo.propnize_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.propnize_step">[docs]</a>    <span class="k">def</span> <span class="nf">propnize_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assoc</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">reorder</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs propositionalization for this object.&quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">get_lit_list</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">RelSt</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">is_constant</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">get_code</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
+                    <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Prop</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span> <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span> \
+                                                    <span class="k">else</span> <span class="n">Prop</span><span class="o">.</span><span class="n">false_const</span><span class="p">())</span>
+                <span class="k">return</span> <span class="n">res</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">Prop</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">get_prop_var_list</span><span class="p">(</span><span class="n">index</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+            <span class="n">atom</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+
+            <span class="c1"># This is always false regardless of graphs</span>
+            <span class="k">if</span> <span class="n">atom</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">atom</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+                <span class="k">return</span>
+
+            <span class="n">left_li</span> <span class="o">=</span> <span class="n">get_lit_list</span><span class="p">(</span><span class="n">atom</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="p">)</span>
+            <span class="n">right_li</span> <span class="o">=</span> <span class="n">get_lit_list</span><span class="p">(</span><span class="n">atom</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="p">)</span>
+
+            <span class="c1"># OR of bit-wise AND</span>
+            <span class="n">res_li</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">bitwise_binop</span><span class="p">(</span><span class="n">Prop</span><span class="o">.</span><span class="n">get_land_tag</span><span class="p">(),</span> <span class="n">left_li</span><span class="p">,</span> <span class="n">right_li</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">reorder</span><span class="p">:</span>
+                <span class="n">acc1</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">binop_batch</span><span class="p">(</span><span class="n">Prop</span><span class="o">.</span><span class="n">get_lor_tag</span><span class="p">(),</span> <span class="n">res_li</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">acc1</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Prop</span><span class="o">.</span><span class="n">lor</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">res_li</span><span class="p">)</span>
+
+            <span class="c1"># OR of bit-wise NOT IFF</span>
+            <span class="n">res_li</span> <span class="o">=</span> <span class="p">[</span><span class="n">Prop</span><span class="o">.</span><span class="n">neg</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span>\
+                <span class="n">Prop</span><span class="o">.</span><span class="n">bitwise_binop</span><span class="p">(</span><span class="n">Prop</span><span class="o">.</span><span class="n">get_iff_tag</span><span class="p">(),</span> <span class="n">left_li</span><span class="p">,</span> <span class="n">right_li</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">reorder</span><span class="p">:</span>
+                <span class="n">acc2</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">binop_batch</span><span class="p">(</span><span class="n">Prop</span><span class="o">.</span><span class="n">get_lor_tag</span><span class="p">(),</span> <span class="n">res_li</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">acc2</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Prop</span><span class="o">.</span><span class="n">lor</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">res_li</span><span class="p">)</span>
+
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">land</span><span class="p">(</span><span class="n">acc1</span><span class="p">,</span> <span class="n">acc2</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_eq_atom</span><span class="p">():</span>
+            <span class="n">atom</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+
+            <span class="c1"># This is always true regardless of graphs</span>
+            <span class="k">if</span> <span class="n">atom</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">atom</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+                <span class="k">return</span>
+
+            <span class="n">left_li</span> <span class="o">=</span> <span class="n">get_lit_list</span><span class="p">(</span><span class="n">atom</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="p">)</span>
+            <span class="n">right_li</span> <span class="o">=</span> <span class="n">get_lit_list</span><span class="p">(</span><span class="n">atom</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">st</span><span class="p">)</span>
+
+            <span class="c1"># AND of bit-wise IFF</span>
+            <span class="n">res_li</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">bitwise_binop</span><span class="p">(</span><span class="n">Prop</span><span class="o">.</span><span class="n">get_iff_tag</span><span class="p">(),</span> <span class="n">left_li</span><span class="p">,</span> <span class="n">right_li</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">reorder</span><span class="p">:</span>
+                <span class="n">acc</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">binop_batch</span><span class="p">(</span><span class="n">Prop</span><span class="o">.</span><span class="n">get_land_tag</span><span class="p">(),</span> <span class="n">res_li</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">acc</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Prop</span><span class="o">.</span><span class="n">land</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">res_li</span><span class="p">)</span>
+
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">acc</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_land_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_lor_term</span><span class="p">()</span>\
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_implies_term</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_iff_term</span><span class="p">():</span>
+            <span class="n">left</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">2</span><span class="p">))]</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">binop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(),</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_neg_term</span><span class="p">():</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_operand</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">neg</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_true_atom</span><span class="p">():</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_false_atom</span><span class="p">():</span>
+            <span class="n">assoc</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Prop</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="k">assert</span> <span class="kc">False</span></div>
+
+
+    <span class="c1"># Parser</span>
+<div class="viewcode-block" id="Fo.read"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.read">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">formula_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reorder</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsExpr</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Constructs formula from string.</span>
+
+<span class="sd">        The format of first-order formulas is defined here</span>
+<span class="sd">        in Backus–Naur form. The following notation is useful shorthand.</span>
+
+<span class="sd">        * e1 | e2 | e3 | ... means a choice of e1, e2, e3, etc.</span>
+<span class="sd">        * ( e )* means zero or more occurences of e.</span>
+<span class="sd">        * [&quot;a&quot;-&quot;z&quot;] matches any lowercase alphabet letter.</span>
+<span class="sd">        * [&quot;A&quot;-&quot;Z&quot;] matches any uppercase alphabet letter.</span>
+<span class="sd">        * [&quot;0&quot;-&quot;9&quot;] matches any digit from &quot;0&quot; to &quot;9&quot;.</span>
+<span class="sd">        * &lt;word&gt; means a non-terminal symbol.</span>
+
+<span class="sd">        The name of a variable symbol is defined as follows::</span>
+
+<span class="sd">            &lt;var_symb&gt;::= &lt;alpha_lower&gt; (&lt;alpha_lower&gt; | &lt;digit&gt; | &quot;_&quot;)*</span>
+<span class="sd">            &lt;alpha_lower&gt;::= [&quot;a&quot;-&quot;z&quot;]</span>
+<span class="sd">            &lt;digit&gt;::= [&quot;0&quot;-&quot;9&quot;]</span>
+
+<span class="sd">        The name of a constant symbol is defined as follows::</span>
+
+<span class="sd">            &lt;con_symb&gt;::= &lt;alpha_upper&gt; (&lt;alpha_upper&gt; | &lt;digit&gt; | &quot;_&quot;)*</span>
+<span class="sd">            &lt;alpha_upper&gt;::= [&quot;A&quot;-&quot;Z&quot;]</span>
+<span class="sd">            &lt;digit&gt;::= [&quot;0&quot;-&quot;9&quot;]</span>
+
+<span class="sd">        An atomic formula is defined as follows::</span>
+
+<span class="sd">            &lt;atom&gt;::= &lt;edg_atom&gt; | &lt;eq_atom&gt; | &lt;con_atom&gt;</span>
+<span class="sd">            &lt;edg_atom&gt;::= &quot;edg&quot; &quot;(&quot; &lt;term&gt; &quot;,&quot; &lt;term&gt; &quot;)&quot;</span>
+<span class="sd">            &lt;eq_atom&gt;::=  &lt;term&gt; &quot;=&quot; &lt;term&gt;</span>
+<span class="sd">            &lt;con_atom&gt;::= &quot;T&quot; | &quot;F&quot;</span>
+<span class="sd">            &lt;term&gt;::= &lt;var_symb&gt; | &lt;con_symb&gt;</span>
+
+<span class="sd">        A formula is defined as follows::</span>
+
+<span class="sd">            &lt;expr&gt;::= &lt;atom&gt; | &quot;(&quot; &lt;unop&gt; &lt;expr&gt; &quot;)&quot;</span>
+<span class="sd">                            | &quot;(&quot; &lt;expr&gt; &lt;binop&gt; &lt;expr&gt; &quot;)&quot;</span>
+<span class="sd">                            | &quot;(&quot; &lt;qf&gt; &lt;var&gt; &lt;expr&gt; &quot;)&quot;</span>
+<span class="sd">            &lt;unop&gt;::= &quot;!&quot;</span>
+<span class="sd">            &lt;binop&gt;::= &quot;&amp;&quot; | &quot;|&quot; | &quot;-&gt;&quot; | &quot;&lt;-&gt;&quot;</span>
+<span class="sd">            &lt;qf&gt;::= &quot;A&quot; | &quot;E&quot;</span>
+
+<span class="sd">        Parenthesis can be omitted as long as the interpretation is uniquely</span>
+<span class="sd">        determined.</span>
+<span class="sd">        Here, the precedence of logical operators is determined as follows::</span>
+
+<span class="sd">            &quot;A&quot;=&quot;E&quot; &gt; &quot;!&quot; &gt; &quot;&amp;&quot; &gt; &quot;|&quot; &gt; &quot;-&gt;&quot; &gt; &quot;&lt;-&gt;&quot;</span>
+
+<span class="sd">        Operators of the same precedence are associated in such a way</span>
+<span class="sd">        that binary operations are left-associative, unary operation and</span>
+<span class="sd">        quantifiers are right-associative.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            ! A x T means ! (A x T), but A x ! T cannot be parsed because the</span>
+<span class="sd">            parser attempts to interprete it as (A x !) T due to precedence,</span>
+<span class="sd">            unless I misunderstand.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            formula_str: string representation of formula</span>
+<span class="sd">            reorder: True if the order of operations to be applied is changed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">action_tag</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tokens</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">action_var_symb</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tokens</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_index</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">action_con_symb</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tokens</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_index</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">action_con_rel</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_false_const_tag</span><span class="p">():</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">false_const</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_true_const_tag</span><span class="p">():</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">true_const</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="kc">False</span>
+
+        <span class="k">def</span> <span class="nf">action_edg_rel</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_edg_tag</span><span class="p">():</span>
+                <span class="n">op1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">op2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">edg</span><span class="p">(</span><span class="n">op1</span><span class="p">,</span> <span class="n">op2</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="kc">False</span>
+
+        <span class="k">def</span> <span class="nf">action_eq_rel</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_eq_tag</span><span class="p">():</span>
+                <span class="n">op1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">op2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">op1</span><span class="p">,</span> <span class="n">op2</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="kc">False</span>
+
+        <span class="k">def</span> <span class="nf">action_qfop</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tokens</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">qf</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">],</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">action_negop</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tokens</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">neg</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">action_binop</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="c1"># Accumulate tokens in left-associative way.</span>
+            <span class="c1"># Many tokens may be given at once when the same operation appears.</span>
+            <span class="n">accum</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="n">accum</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">binop</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">accum</span><span class="p">,</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">accum</span>
+
+        <span class="k">def</span> <span class="nf">action_binop_batch</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="kc">False</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>\
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">2</span><span class="p">)]</span>
+            <span class="n">expr_li</span> <span class="o">=</span> <span class="p">[</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">2</span><span class="p">)]</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">binop_batch</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">expr_li</span><span class="p">)</span>
+
+        <span class="c1"># The following tokens are suppressed in the parsed result.</span>
+        <span class="n">COMMA</span>   <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Suppress</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_comma_tag</span><span class="p">())</span>
+        <span class="n">LPAREN</span>  <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Suppress</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_lparen_tag</span><span class="p">())</span>
+        <span class="n">RPAREN</span>  <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Suppress</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_rparen_tag</span><span class="p">())</span>
+
+        <span class="c1"># Literal will match the given string,</span>
+        <span class="c1"># even if it is just the start of a larger string.</span>
+        <span class="n">AND</span>     <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Literal</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_land_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+        <span class="n">OR</span>      <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Literal</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_lor_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+        <span class="n">NEG</span>     <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Literal</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_neg_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+        <span class="n">IMPLIES</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Literal</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">get_implies_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+        <span class="n">IFF</span>     <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Literal</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_iff_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+        <span class="n">EQ</span>      <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Literal</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_eq_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+
+        <span class="c1"># Keyword will only match the given string</span>
+        <span class="c1"># if it is not part of a larger word</span>
+        <span class="c1"># (followed by space, or by a non-word character).</span>
+        <span class="n">ALL</span>     <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Keyword</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_forall_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+        <span class="n">EXISTS</span>  <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Keyword</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_exists_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+        <span class="n">EDG</span>     <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Keyword</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_edg_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+        <span class="n">TRUE</span>    <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Keyword</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">get_true_const_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+        <span class="n">FALSE</span>   <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Keyword</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">get_false_const_tag</span><span class="p">())</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_tag</span><span class="p">)</span>
+
+        <span class="c1"># Variables are strings that match the pattern [a-z][a-z_0-9]* .</span>
+        <span class="n">VAR_SYMB</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span>
+            <span class="n">pp</span><span class="o">.</span><span class="n">alphas</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
+            <span class="n">pp</span><span class="o">.</span><span class="n">alphas</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">+</span><span class="n">pp</span><span class="o">.</span><span class="n">nums</span><span class="o">+</span><span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_var_symb</span><span class="p">)</span>
+
+        <span class="c1"># Constants are strings that match the pattern [A-Z][A-Z_0-9]* .</span>
+        <span class="n">CON_SYMB</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span>
+            <span class="n">pp</span><span class="o">.</span><span class="n">alphas</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+            <span class="n">pp</span><span class="o">.</span><span class="n">alphas</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">+</span><span class="n">pp</span><span class="o">.</span><span class="n">nums</span><span class="o">+</span><span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_con_symb</span><span class="p">)</span>
+
+        <span class="c1"># No constant symbol and no function symbol.</span>
+        <span class="n">TERM</span>  <span class="o">=</span> <span class="n">VAR_SYMB</span> <span class="o">|</span> <span class="n">CON_SYMB</span>
+
+        <span class="c1"># Relation Symbols: &quot;edg&quot;, &quot;=&quot;</span>
+        <span class="n">EDG_REL</span> <span class="o">=</span> <span class="p">(</span><span class="n">EDG</span> <span class="o">+</span> <span class="n">LPAREN</span> <span class="o">+</span> <span class="n">TERM</span> <span class="o">+</span>
+            <span class="n">COMMA</span> <span class="o">+</span> <span class="n">TERM</span> <span class="o">+</span> <span class="n">RPAREN</span><span class="p">)</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_edg_rel</span><span class="p">)</span>
+        <span class="n">EQ_REL</span>  <span class="o">=</span> <span class="p">(</span><span class="n">TERM</span> <span class="o">+</span> <span class="n">EQ</span> <span class="o">+</span> <span class="n">TERM</span><span class="p">)</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_eq_rel</span><span class="p">)</span>
+        <span class="n">CON_REL</span> <span class="o">=</span> <span class="p">(</span><span class="n">TRUE</span> <span class="o">|</span> <span class="n">FALSE</span><span class="p">)</span><span class="o">.</span><span class="n">set_parse_action</span><span class="p">(</span><span class="n">action_con_rel</span><span class="p">)</span>
+        <span class="n">ATOM</span>  <span class="o">=</span> <span class="n">EDG_REL</span> <span class="o">|</span> <span class="n">EQ_REL</span> <span class="o">|</span> <span class="n">CON_REL</span>
+
+        <span class="n">QF</span>    <span class="o">=</span> <span class="p">(</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">EXISTS</span><span class="p">)</span> <span class="o">+</span> <span class="n">VAR_SYMB</span>
+
+        <span class="n">EXPR</span>  <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Forward</span><span class="p">()</span>
+
+        <span class="c1"># NOTE: Do not change the order of operators below,</span>
+        <span class="c1"># which specifies the precedence of operators.</span>
+        <span class="n">EXPR</span> <span class="o">&lt;&lt;=</span> <span class="n">pp</span><span class="o">.</span><span class="n">infix_notation</span><span class="p">(</span>
+            <span class="n">ATOM</span><span class="p">,</span>
+            <span class="p">[</span>
+                <span class="p">(</span><span class="n">QF</span><span class="p">,</span>      <span class="mi">1</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">opAssoc</span><span class="o">.</span><span class="n">RIGHT</span><span class="p">,</span> <span class="n">action_qfop</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">NEG</span><span class="p">,</span>     <span class="mi">1</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">opAssoc</span><span class="o">.</span><span class="n">RIGHT</span><span class="p">,</span> <span class="n">action_negop</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">AND</span><span class="p">,</span>     <span class="mi">2</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">opAssoc</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span>  <span class="n">action_binop_batch</span> <span class="k">if</span> <span class="n">reorder</span>
+                <span class="k">else</span> <span class="n">action_binop</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">OR</span><span class="p">,</span>      <span class="mi">2</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">opAssoc</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span>  <span class="n">action_binop_batch</span> <span class="k">if</span> <span class="n">reorder</span>
+                <span class="k">else</span> <span class="n">action_binop</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">IMPLIES</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">opAssoc</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span>  <span class="n">action_binop</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">IFF</span><span class="p">,</span>     <span class="mi">2</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">opAssoc</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span>  <span class="n">action_binop</span><span class="p">),</span>
+            <span class="p">],</span>
+            <span class="n">lpar</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_lparen_tag</span><span class="p">(),</span>
+            <span class="n">rpar</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_rparen_tag</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">EXPR</span><span class="o">.</span><span class="n">parse_string</span><span class="p">(</span><span class="n">formula_str</span><span class="p">,</span> <span class="n">parse_all</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Fo.make_str_pre_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.make_str_pre_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_pre_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">():</span>
+            <span class="n">name1</span> <span class="o">=</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">name2</span> <span class="o">=</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;edg(</span><span class="si">{</span><span class="n">name1</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">name2</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_eq_atom</span><span class="p">():</span>
+            <span class="n">name1</span> <span class="o">=</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">name2</span> <span class="o">=</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name1</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">name2</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_str_pre_step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Fo.make_str_in_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.make_str_in_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_in_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_eq_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_str_in_step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Fo.make_str_post_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.make_str_post_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_post_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_eq_atom</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_str_post_step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Fo.make_node_str_step"><a class="viewcode-back" href="../../pygplib.html#pygplib.fo.Fo.make_node_str_step">[docs]</a>    <span class="k">def</span> <span class="nf">make_node_str_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_eq_atom</span><span class="p">():</span>
+
+            <span class="n">op1</span>  <span class="o">=</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> \
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;-&quot;</span>
+            <span class="n">op2</span>  <span class="o">=</span> <span class="n">NameMgr</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> \
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_value</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;-&quot;</span>
+
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">edg(</span><span class="si">{</span><span class="n">op1</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">op2</span><span class="si">}</span><span class="s2">)</span><span class="se">\&quot;</span><span class="s2">&quot;</span> \
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_edg_atom</span><span class="p">()</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="si">{</span><span class="n">op1</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">op2</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">make_node_str_step</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Takahisa Toda.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
