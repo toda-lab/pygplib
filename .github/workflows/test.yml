@@ -20,6 +20,8 @@ jobs:
         PROJECT_HOME: /home/runner/work/pygplib/pygplib
         PYTHONPATH: /home/runner/work/pygplib/pygplib
       run: |
+        pip install pysat
+        pip install pyunigen
         pip install pyparsing
         pip install pytest
         pip install pytest-cov
