@@ -14,6 +14,6 @@ __all__ = [
     "GrSt",
     "Cnf",
     "NameMgr",
-    "util".
+    "util",
     "op",
 ]
