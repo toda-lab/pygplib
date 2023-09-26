@@ -16,10 +16,13 @@ jobs:
       with:
         python-version: "3.10"
     - name: Generate coverage report
+      env:
+        PROJECT_HOME: /home/runner/work/pygplib/pygplib
+        PYTHONPATH: /home/runner/work/pygplib/pygplib/pygplib
       run: |
         pip install pytest
         pip install pytest-cov
-        python -m pytest --cov=./ --cov-report=xml
+        pytest --import-mode=pygplib --cov=./ --cov-report=xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
