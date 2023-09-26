@@ -55,7 +55,7 @@ def is_dominating_set(ans,N,E):
                 found = True
             if E[v][w] == 1:
                 found = True
-        assert found, f"no vertex is equal to nor adjacent to {w}"
+        assert found, f"no vertex is equal to nor adjacent to {w}: {ans}"
 
 
 def is_vertex_cover(ans,N,E):
@@ -70,4 +70,4 @@ def is_vertex_cover(ans,N,E):
                     found = True
                 if w == u:
                     found = True
-            assert found, f"edge ({v},{w}) is not covered by {ans[i]}"
+            assert found, f"edge ({v},{w}) is not covered by {ans[i]}: {ans}"
