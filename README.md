@@ -1,5 +1,6 @@
 # Pygplib: Python First-Order Graph Property Library
 
+[![test](https://github.com/toda-lab/pygplib/actions/workflows/test.yml/badge.svg)](https://github.com/toda-lab/pygplib/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/toda-lab/pygplib/graph/badge.svg?token=WWR54JE3M1)](https://codecov.io/gh/toda-lab/pygplib)
 
 *Pygplib* (Python First-Order Graph Property Library) is a library for 
