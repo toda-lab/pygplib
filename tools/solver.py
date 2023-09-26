@@ -65,6 +65,9 @@ def sample_vertexset(expr: Fo, num: int = 1):
 
     ans = []
     for assign in samples:
+        # Filter out all literals of auxilliary variables in CNF-encoding.      
+        assign = [lit for lit in assign if abs(lit) <= base] 
+
         res = Fo.st.get_interpretation_of_assign(assign)
         decoded_assign = tuple([(NameMgr.lookup_name(key), res[key]+1) \
                             for key in sorted(res.keys())])
