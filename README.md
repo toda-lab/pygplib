@@ -2,6 +2,7 @@
 
 [![test](https://github.com/toda-lab/pygplib/actions/workflows/test.yml/badge.svg)](https://github.com/toda-lab/pygplib/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/toda-lab/pygplib/graph/badge.svg?token=WWR54JE3M1)](https://codecov.io/gh/toda-lab/pygplib)
+ [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 *Pygplib* (Python First-Order Graph Property Library) is a library for 
 constructing, manipulating, and encoding graph properties expressible 
