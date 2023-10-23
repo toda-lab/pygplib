@@ -6,25 +6,18 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    env:
-      OS: ${{ matrix.os }}
-      PYTHON: '3.10'
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@master
-    - name: Setup Python
+    - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@master
       with:
-        python-version: "3.10"
-    - name: Generate coverage report
-      env:
-        PROJECT_HOME: /home/runner/work/pygplib/pygplib
-        PYTHONPATH: /home/runner/work/pygplib/pygplib
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
       run: |
-        pip install python-sat
-        pip install pyunigen
-        pip install pyparsing
-        pip install pytest
-        pip install pytest-cov
-        pytest --cov=./ --cov-report=xml
+        python -m pip install --upgrade pip
+        python -m pip install tox-gh-actions poetry
+    - name: Test with tox
+      run: poetry run tox
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

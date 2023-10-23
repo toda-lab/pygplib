@@ -12,6 +12,13 @@ with first-order logic of graphs.
 We mean by *graphs* graphs with no directed edge, no multiple edge, 
 no isolated edge, at most one isolated vertex, and no loop.
 
+Installation
+============
+
+.. code:: shell-session
+
+    $ pip install pygplib
+
 Documentation
 =============
 
