@@ -1,7 +1,7 @@
 Pygplib: Python First-Order Graph Property Library
 ==================================================
 
-|Test| |Coverage| |License|
+|PyPI Version| |Python Versions| |Test| |Coverage| |License| |Documentation|
 
 Introduction
 ============
@@ -317,8 +317,20 @@ MIT License. See `LICENSE <https://github.com/toda-lab/pygplib/blob/main/LICENSE
    :target: https://github.com/toda-lab/pygplib/actions/workflows/test.yml
 
 .. |Coverage| image:: https://codecov.io/gh/toda-lab/pygplib/graph/badge.svg?token=WWR54JE3M1
-  :target: https://codecov.io/gh/toda-lab/pygplib
+   :target: https://codecov.io/gh/toda-lab/pygplib
+
+.. |Python Versions| image:: https://img.shields.io/pypi/pyversions/pygplib
+   :target: https://pypi.org/project/pygplib/
+   :alt: PyPI - Python Versions
+
+.. |PyPI Version| image:: https://img.shields.io/pypi/v/pygplib
+   :target: https://pypi.org/project/pygplib/
+   :alt: PyPI - Version
 
 .. |License| image:: https://img.shields.io/badge/License-MIT-yellow.svg
     :target: https://opensource.org/licenses/MIT
     :alt: License
+
+.. |Documentation| image:: https://readthedocs.org/projects/pygplib/badge/?version=latest
+    :target: https://pygplib.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status

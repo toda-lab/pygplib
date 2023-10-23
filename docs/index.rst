@@ -12,7 +12,6 @@ Release v\ |version|
    :caption: Contents:
 
    HowToUsePygplib
-   pygplib
 
 Indices and tables
 ==================
