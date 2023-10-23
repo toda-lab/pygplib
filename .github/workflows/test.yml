@@ -19,7 +19,7 @@ jobs:
         python -m pip install tox-gh-actions poetry
     - name: Poetry Install Dependencies
       run: |
-        poetry install --no-interaction
+        poetry install --no-interaction --extras "tests examples docs"
     - name: Test with tox
       run: poetry run tox
     - name: Upload coverage to Codecov
