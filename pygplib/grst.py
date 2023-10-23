@@ -1,169 +1,240 @@
 """Graph relational structure class"""
 
-from pygplib.name  import NameMgr
-from pygplib.st    import RelSt
+import functools
 
-class GrSt(RelSt):
-    """Manages structure for interpreting formulas (and index-mapping)."""
+from .name     import NameMgr
+from .symrelst import SymRelSt
+from .prop     import Prop
+from .ecc      import Ecc
 
-    def __init__(self, domain: tuple[tuple[int]], prefix: str = "V"):
-        """Set domain and initialize structure.
+class GrSt(SymRelSt):
+    """Manages graph structure for interpreting formulas (and index-mapping).
 
-        Each element of a domain is identified with binary code of fixed length.
-        The relations such as adjacency relation of vertices and equality
-        relation between vertices are interpreted through such binary codes
-        in such a way that two vertices are not equal if and only if there is
-        a position at which the codes of the vertices differ; two vertices are
-        adjacent if and only if they are not equal and there is a position
-        at which the codes of the vertices both have value 1.
+    Example of Usage is as follows.
 
-        Example:
-            Example of domain is ((1), (1,2), (2), ()),
-            where the 1st element, V1, has code 10, the 2nd element, V2,
-            (also the 3rd element, V3) 11, and the 4th element, V4, 00.
-            This defines G = (V, E),
-            where V = {V1,V2,V3,V4}, E = {{V1,V2}, {V2,V3}}.
+    ::
+
+        W1---W2
+        |   /
+        |  /
+        | /
+        W3---W5
+
+        import pygplib import GrSt, Fog, NameMgr
+        vertex_list = [3,1,2,5]
+        edge_list   = [(2,1),(1,3),(3,2),(3,5)]
+        Fog.st = GrSt(vertex_list, edge_list, prefix = "W")
+        i = Fog.st.vertex_to_object(vertex_list[0])
+        assert NameMgr.lookup_name(i) == f"W{vertex_list[0]}"
+
+    """
+    def __init__(self, vertex_list: list, edge_list: list, \
+                    encoding: str = "edge", prefix: str = "V"):
+        """Initialize a graph structure.
 
         Args:
-            domain: domain on which variables run.
-            prefix: prefix of constant symbol name.
+            vertex_list: list of vertices
+            edge_list: list of edges (pairs of vertices)
+            encoding: encoding type ("edge", "clique", "direct", "log")
+            prefix: prefix of vertex name, which must be uppercase.
         """
+        if len(set(vertex_list)) != len(vertex_list):
+            raise Exception(f"duplicate vertex found: {vertex_list}")
+        for edge in edge_list:
+            if len(edge) != 2:
+                raise Exception(f"edge must be of size 2: {edge}")
+            if edge[0] == edge[1]:
+                raise Exception(f"loop is not allowed: {edge}")
+            if edge[0] not in vertex_list\
+                or edge[1] not in vertex_list:
+                raise Exception(f"invalid vertex found: {edge}")
         if not (prefix.isalpha() and prefix.isupper()):
             raise ValueError(\
                 "All characters must be alphabetic and uppercase letters")
 
-        self._M = max([max(li) for li in domain if len(li) > 0]) # code length
-        self._N = len(domain) # domain size
+        self._encoding = encoding
         self._prefix = prefix
 
-        self._D = tuple([self._key_to_code(map(lambda x: x-1, li))\
-            for li in domain])
+        self.verts = \
+            tuple([NameMgr.lookup_index(self._prefix + f"{vertex}") \
+                                        for vertex in set(vertex_list)])
+        self.edges = tuple(self._normalize_edge_list(edge_list))
 
-        # dictionary to find position of code in self._D
-        self._invdict = {}
-        for pos, code in enumerate(self._D):
-            key = self._code_to_key(code)
-            if key in self._invdict:
-                raise Exception(f"{key} appear multiple times.")
-            self._invdict[key] = pos
+        if self._encoding == "edge":
+            super().__init__(self.verts, self.edges)
+        elif self._encoding == "clique":
+            super().__init__(self.verts, \
+                Ecc(self.verts, self.edges).compute_separating_ecc())
+        elif self._encoding == "direct":
+            super().__init__(self.verts, \
+                tuple([(i+1,) for i in range(len(self.verts))])
+                )
+        elif self._encoding == "log":
+            raise Exception
+        else:
+            raise Exception
 
-        self._V = tuple(\
-                [NameMgr.lookup_index(self._prefix + f"{i+1}")\
-                    for i in range(self._N)])
+    def _normalize_edge_list(self, edge_list: list) -> list:
+        res = []
+        for edge in edge_list:
+            i = self.vertex_to_object(edge[0])
+            j = self.vertex_to_object(edge[1])
+            normalized = tuple(sorted([i,j]))
+            if normalized not in res:
+                res.append(normalized)
+        return res
 
-    def _key_to_code(self, key: tuple) -> tuple:
-        """Converts key to binary code.
+    def vertex_to_object(self, vertex: int) -> int:
+        name = self._prefix + f"{vertex}" 
+        if not NameMgr.has_index(name):
+            raise Exception(f"invalid vertex: {vertex}")
+        return NameMgr.lookup_index(name)
 
-        Args:
-            key: tuple of code positions, which need not be sorted.
-
-        Returns:
-            tuple: returns a tuple of binary values, representing key.
-        """
-        res = [0]*self._M
-        for pos in sorted(key):
-            res[pos] = 1
-        return tuple(res)
-
-    def _code_to_key(self, code: tuple) -> tuple:
-        """Converts binary code to key.
-
-        Args:
-            code: tuple of binary values of code length.
-
-        Returns:
-            tuple: returns a tuple of code positions of value 1, sorted in
-            increasing order.
-        """
-        res = [i for i, val in enumerate(code) if val == 1]
-        return tuple(res)
-
-    def get_interpretation_of_assign(self, assign: tuple[int])\
-        -> dict[int,int]:
-        """Gets interpretation of assignments of propositional variables.
-
-        Args:
-            assign: assignments of propositional variables
-
-        Returns:
-           dict: associating variable symbol index with element index
-
-        Note:
-            element index ranges from 0 to domain size-1
-        """
-
-        symb_index_set = {self.get_symbol_index(abs(x))\
-            for x in assign if self.exists_symbol(abs(x))}
-
-        dic = {} # dic to find set of code pos of value 1 from symbol index
-        for index in symb_index_set:
-            for prop_index in self.get_prop_var_list(index):
-                if (prop_index in assign) and (-prop_index in assign):
-                    raise Exception(f"Conflicting assign w.r.t {prop_index}")
-                if prop_index in assign:
-                    if index not in dic:
-                        dic[index] = set()
-                    pos = self.get_code_pos(prop_index)
-                    dic[index].add(pos)
-                    continue
-                if -prop_index in assign:
-                    continue
-                raise Exception("Incomplete assign w.r.t {prop_index}")
-
-        result = {}
-        for index in symb_index_set:
-            if index not in dic:
-                dic[index] = set()
-            key = tuple(sorted(dic[index]))
-            if key not in self._invdict:
-                raise Exception("No matching element")
-            result[index] = self._invdict[key]
-
-        return result
-
-    def get_constant_symbol_tuple(self) -> tuple:
-        """Returns a tuple of constant symbol indices.
-
-        Note:
-            For each i, the i-th value in the returned tuple represents a
-            constant symbol index of the i-th element of domain, where i
-            ranges from 0 to domain size-1.
-        """
-        return self._V
-
-    def get_domain_size(self) -> int:
-        """Returns number of elements in domain."""
-        return self._N
-
-    def get_code_length(self) -> int:
-        """Returns code length."""
-        return self._M
-
-    def get_code_table(self) -> tuple:
-        """Returns code table.
-
-        Note:
-            For each element index i, the i-th entry of the returned tuple is a
-            code of the element, where i ranges from 0 to domain size-1.
-        """
-        return self._D
-
-    def get_code(self, i: int) -> tuple:
-        """Returns the binary code of an index of constant symbol.
-
-        Args:
-            i: constant symbol index
-        """
+    def object_to_vertex(self, i: int) -> int:
         if not NameMgr.has_name(i):
-            raise ValueError(f"{i} has no name")
+            raise Exception(f"invalid symbol: {i}")
         if not NameMgr.is_constant(i):
-            raise ValueError(\
-                f"{NameMgr.lookup_name(i)} is not constant symbol")
+            raise Exception(f"invalid symbol: {i}")
 
         name = NameMgr.lookup_name(i)
-        if not (name.find(self._prefix) == 0\
-            and name[len(self._prefix):].isdigit()):
-            raise ValueError(f"{NameMgr.lookup_name(i)} is not element name")
+        if not (name.find(self._prefix) == 0 \
+            and name[len(self._prefix) :].isdigit()):
+            raise ValueError(f"{NameMgr.lookup_name(i)} is not vertex name")
 
-        pos = int(name[len(self._prefix):])-1
-        return self._D[pos]
+        return int(name[len(self._prefix) :])
+
+    def adjacent(self, i: int, j: int) -> bool:
+        if self._encoding in {"edge", "clique"}:
+            return True in [k in self.get_code(j) for k in self.get_code(i)]\
+                    and not self.equal(i,j)
+        if self._encoding == "direct":
+            u = self.object_to_vertex(i)
+            v = self.object_to_vertex(j)
+            return tuple(sorted([u,v])) in self.edges
+        else:
+            raise Exception(\
+                f"encoding type {self._encoding} does not match with this method")
+
+    def equal(self, i: int, j: int) -> bool:
+        return self.get_code(i) == self.get_code(j)
+
+    def _get_lit_list(self, i: int) -> list[Prop]:
+        if NameMgr.is_constant(i):
+            return [Prop.true_const() if pos+1 in self.get_code(i) \
+                        else Prop.false_const() \
+                            for pos in range(self.code_length)]
+        else:
+            return [Prop.var(j) for j in self.get_boolean_var_list(i)]
+
+    def encode_eq(self, i: int, j: int) -> Prop:
+        li = Prop.bitwise_binop(Prop.get_iff_tag(), \
+                                self._get_lit_list(i), \
+                                self._get_lit_list(j))
+        if Prop.bipartite_order:
+            return Prop.binop_batch(Prop.get_land_tag(), li)
+        else:
+            return functools.reduce(lambda x,y: Prop.land(x,y), li)
+
+    def encode_edg(self, i: int, j: int) -> Prop:
+        if self._encoding in {"edge", "clique"}:
+            li = Prop.bitwise_binop(Prop.get_land_tag(), \
+                                    self._get_lit_list(i), \
+                                    self._get_lit_list(j))
+            if Prop.bipartite_order:
+                res = Prop.binop_batch(Prop.get_lor_tag(), li)
+            else:
+                res = functools.reduce(lambda x,y: Prop.lor(x,y), li)
+            return Prop.land(res, Prop.neg(self.encode_eq(i,j)))
+        elif self._encoding == "direct":
+            lits = [self._get_lit_list(i),self._get_lit_list(j)]
+            li = [Prop.lor(\
+                    Prop.land(lits[0][self._object_to_pos(e[0])], \
+                        lits[1][self._object_to_pos(e[1])]),\
+                    Prop.land(lits[0][self._object_to_pos(e[1])], \
+                        lits[1][self._object_to_pos(e[0])]),\
+                        ) for e in self.edges]
+            if Prop.bipartite_order:
+                return Prop.binop_batch(Prop.get_lor_tag(), li)
+            else:
+                return functools.reduce(lambda x,y: Prop.lor(x,y), li)
+        else:
+            raise Exception(\
+                f"encoding type {self._encoding} does not match with this method")
+
+    def encode_T(self) -> Prop:
+        return Prop.true_const()
+
+    def encode_F(self) -> Prop:
+        return Prop.false_const()
+
+    def compute_domain_constraint(self, var: int):
+        if self._encoding in ["edge", "clique"]:
+            return self._compute_domain_constraint_DNF_clique_encoding(var)
+        elif self._encoding == "direct":
+            return self._compute_domain_constraint_direct_encoding(var)
+        elif self._encoding == "log":
+            raise Exception
+        else:
+            raise Exception
+            
+    def _compute_domain_constraint_DNF_clique_encoding(self, index: int)\
+        -> Prop:
+        """Computes a constraint in DNF for a given first-order variable
+        such that the variable runs over the domain of this structure.
+
+        Note:
+            Use this for edge-encoding or clique-encoding.
+
+        Raises:
+            Exception: if index is not a variable symbol.
+
+        Args:
+            index: a first-order variable index
+
+        Returns:
+            Prop: Prop class object of the computed DNF constraint.
+        """
+        if self._encoding not in {"edge", "clique"}:
+            raise Exception(\
+            f"encoding type {self._encoding} does not match with this method")
+        if not NameMgr.is_variable(index):
+            raise Exception(f"symbol index {index} is not a variable symbol")
+        dnf = []
+        for obj in self.domain:
+            lits = self._get_lit_list(index)
+            term = [
+                lits[pos] if pos+1 in self.get_code(obj) \
+                else Prop.neg(lits[pos]) \
+                for pos in range(self.code_length)
+            ]
+            if Prop.bipartite_order:
+                dnf.append(Prop.binop_batch(Prop.get_land_tag(), term))
+            else:
+                dnf.append(functools.reduce(lambda x,y: Prop.land(x,y), term))
+        if Prop.bipartite_order:
+            return Prop.binop_batch(Prop.get_lor_tag(), dnf)
+        else:
+            return functools.reduce(lambda a, b: Prop.lor(a, b), dnf)
+
+    def _compute_domain_constraint_direct_encoding(self, index: int):
+        if self._encoding != "direct":
+            raise Exception(\
+            f"encoding type {self._encoding} does not match with this method")
+        if not NameMgr.is_variable(index):
+            raise Exception(f"symbol index {index} is not a variable symbol")
+
+        lits = self._get_lit_list(index)
+        # at least one constraint
+        if Prop.bipartite_order:
+            at_least_one = Prop.binop_batch(Prop.get_lor_tag(), lits)
+        else:
+            at_least_one = functools.reduce(lambda x,y: Prop.lor(x,y), lits)
+        # at most one constraint
+        term = [Prop.neg(Prop.land(lits[i],lits[j])) \
+                    for i in range(len(lits))\
+                        for j in range(i+1,len(lits))]
+        if Prop.bipartite_order:
+            at_most_one = Prop.binop_batch(Prop.get_land_tag(), term)
+        else:
+            at_most_one = functools.reduce(lambda x,y: Prop.land(x,y), term)
+        return Prop.land(at_most_one, at_least_one)

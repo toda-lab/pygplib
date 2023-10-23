@@ -11,6 +11,7 @@ class IndexGen:
         _init: initial index
         _next: next index
     """
+
     def __init__(self, init_index: int = 1):
         """Initializes index with init_index."""
         self._init = init_index
@@ -45,7 +46,6 @@ class AbsExpr:
     by invoking an ordinary constructor directly like AbsExpr().
 
     Attributes:
-        st: structure
         _unique_table: dict. to find an object from its string representation.
         _ATOM_TAGS:  tuple of strings, representing types of atom.
         _BINOP_TAGS: tuple of strings, representing types of binary operator.
@@ -61,23 +61,26 @@ class AbsExpr:
         The current implementation, for the sake of simplicity,
         does not provide the functionality of deleting unnecessary objects.
     """
-    st = None
-    _unique_table = {}
 
+    st = None
+    """st: relational structure"""
+    _unique_table = {}
+    bipartite_order = False
+    """bipartitite_order: enables bipartite order of applying operations"""
 
     # Tag-related Variables and Methods
-    _ATOM_TAGS  = ()
+    _ATOM_TAGS = ()
     _BINOP_TAGS = ()
-    _UNOP_TAGS  = ()
+    _UNOP_TAGS = ()
 
-    _EXPR_TAGS  = _ATOM_TAGS + _BINOP_TAGS + _UNOP_TAGS
+    _EXPR_TAGS = _ATOM_TAGS + _BINOP_TAGS + _UNOP_TAGS
 
-    _COMMA  = ","
+    _COMMA = ","
     _LPAREN = "("
     _RPAREN = ")"
 
     _ATOM_LEN = 0
-    _AUX_LEN  = _ATOM_LEN
+    _AUX_LEN = _ATOM_LEN
 
     @classmethod
     def get_lparen_tag(cls) -> str:
@@ -94,22 +97,21 @@ class AbsExpr:
         """Gets tag of comma."""
         return cls._COMMA
 
-
     # Constructor-related Methods
     @staticmethod
-    def _to_key(tag: str, left: 'AbsExpr', right: 'AbsExpr', aux: tuple) \
-        -> str:
+    def _to_key(tag: str, left: "AbsExpr", right: "AbsExpr", aux: tuple) -> str:
         """Makes key to identify expression."""
         tup = (tag, id(left), id(right)) + aux
-        return ','.join(map(str, tup))
+        return ",".join(map(str, tup))
 
     @classmethod
     def _normalize_aux(cls, aux: tuple) -> tuple:
         """This method might be overridden to normalize atom operands' order"""
-        return (0,)*cls._AUX_LEN if aux == () else aux
+        return (0,) * cls._AUX_LEN if aux == () else aux
 
-    def __new__(cls, tag: str, left: 'AbsExpr' = None, right: 'AbsExpr' = None,
-        aux: tuple = ()):
+    def __new__(
+        cls, tag: str, left: "AbsExpr" = None, right: "AbsExpr" = None, aux: tuple = ()
+    ):
         """Creates a new object only if no identical formula exists.
 
         Each formula class will provide dedicated constructors, and
@@ -131,19 +133,18 @@ class AbsExpr:
         cls._unique_table[key] = new
 
         # NOTE: A new object is initialized here.
-        new._tag   = tag
-        new._left  = left
+        new._tag = tag
+        new._left = left
         new._right = right
-        new._aux   = aux
+        new._aux = aux
         return new
-
 
     # Instance Methods
     def get_tag(self) -> str:
         """Gets the tag of the top-most operator of the formula."""
         return self._tag
 
-    def get_operand(self, i: int) -> 'AbsExpr':
+    def get_operand(self, i: int) -> "AbsExpr":
         """Gets an operand of the top-most operator of the formula.
 
         For binary operation, the left operand and the right operand
@@ -151,7 +152,7 @@ class AbsExpr:
         For quanfier and unary operation, the unique operand is
         returned when i = 1.
         """
-        if i not in (1,2):
+        if i not in (1, 2):
             raise IndexError("Index of operand should be either 1 or 2")
         return self._left if i == 1 else self._right
 
@@ -175,11 +176,9 @@ class AbsExpr:
         (as keys for _unique_table) to decide whether formulas
         are syntatically identical.
         """
-        return type(self)._to_key(self._tag,\
-            self._left, self._right, self._aux)
+        return type(self)._to_key(self._tag, self._left, self._right, self._aux)
 
-    def compute_nnf_step(self, negated: bool,\
-        s: list[list], t: list[list]) -> None:
+    def compute_nnf_step(self, negated: bool, s: list[list], t: list[list]) -> None:
         """Performs NNF compuation for this object."""
         assert False, f"{self.gen_key()}"
 

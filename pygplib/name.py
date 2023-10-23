@@ -1,5 +1,6 @@
 """Name manager class"""
 
+
 class NameMgr:
     """Manages names of individual variables and constant symbols.
 
@@ -22,7 +23,8 @@ class NameMgr:
         _dict:  dict to find index from name.
         _inv_list:  list to find name from index.
     """
-    _dict     = {}
+
+    _dict = {}
     _inv_list = []
 
     @classmethod
@@ -63,7 +65,7 @@ class NameMgr:
         """
         if not 0 < index <= len(cls._inv_list):
             raise IndexError(f"No name is linked to {index}")
-        return cls._inv_list[index-1]
+        return cls._inv_list[index - 1]
 
     @classmethod
     def has_index(cls, name: str) -> bool:

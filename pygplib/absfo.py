@@ -1,8 +1,9 @@
 """Class of first-order logic of graphs with True, False, and no other atom"""
 
-from pygplib.absexpr import AbsExpr
-from pygplib.absprop import AbsProp
-from pygplib.name    import NameMgr
+from .absexpr import AbsExpr
+from .absprop import AbsProp
+from .name    import NameMgr
+
 
 class AbsFo(AbsProp):
     """First-order logic of graphs with true and false and no other atoms.
@@ -11,7 +12,7 @@ class AbsFo(AbsProp):
         In the current implementation, syntactically identical subexpressions
         are shared. We have to keep it in mind that this might become source of
         bugs.
-        For instance, consider (E x x) & x.
+        For instance, consider (? [x] : x) & x.
         In this formula, the second occurrence of x is a bound variable, and
         third occurrence is a free variable.
         In the current implementation, despite different semantics,
@@ -32,16 +33,17 @@ class AbsFo(AbsProp):
         _BOUND_VAR_POS: beginning position of the field of bound variable.
         _AUX_LEN:   length of aux field.
     """
+
     # Tag-related Variables and Methods
-    _FORALL = "A"
-    _EXISTS = "E"
+    _FORALL = "!"
+    _EXISTS = "?"
 
-    _ATOM_TAGS  = AbsProp._ATOM_TAGS
+    _ATOM_TAGS = AbsProp._ATOM_TAGS
     _BINOP_TAGS = AbsProp._BINOP_TAGS
-    _UNOP_TAGS  = AbsProp._UNOP_TAGS
-    _QF_TAGS    = (_FORALL, _EXISTS)
+    _UNOP_TAGS = AbsProp._UNOP_TAGS
+    _QF_TAGS = (_FORALL, _EXISTS)
 
-    _EXPR_TAGS  = _ATOM_TAGS + _BINOP_TAGS + _UNOP_TAGS + _QF_TAGS
+    _EXPR_TAGS = _ATOM_TAGS + _BINOP_TAGS + _UNOP_TAGS + _QF_TAGS
 
     _BOUND_VAR_POS = AbsProp._AUX_LEN
     _AUX_LEN = 1 + AbsProp._AUX_LEN
@@ -53,9 +55,8 @@ class AbsFo(AbsProp):
 
     @classmethod
     def get_exists_tag(cls) -> str:
-        """"Gets tag of exists."""
+        """ "Gets tag of exists."""
         return cls._EXISTS
-
 
     # Constructor-related Methods
     @classmethod
@@ -67,8 +68,7 @@ class AbsFo(AbsProp):
             bvar:    index of variable to be bounded.
         """
         if not NameMgr.is_variable(bvar):
-            raise ValueError(\
-                f"{NameMgr.lookup_name(bvar)} is not a variable symbol.")
+            raise ValueError(f"{NameMgr.lookup_name(bvar)} is not a variable symbol.")
         return cls(cls._FORALL, left, aux=(bvar,))
 
     @classmethod
@@ -80,8 +80,7 @@ class AbsFo(AbsProp):
             bvar:    index of variable to be bounded.
         """
         if not NameMgr.is_variable(bvar):
-            raise ValueError(\
-                f"{NameMgr.lookup_name(bvar)} is not a variable symbol.")
+            raise ValueError(f"{NameMgr.lookup_name(bvar)} is not a variable symbol.")
         return cls(cls._EXISTS, left, aux=(bvar,))
 
     @classmethod
@@ -94,17 +93,16 @@ class AbsFo(AbsProp):
             bvar:    index of variable to be bounded.
         """
         if tag not in cls._QF_TAGS:
-            raise ValueError(\
-                f"Expression tag, {tag}, is not available in {cls.__name__}")
+            raise ValueError(
+                f"Expression tag, {tag}, is not available in {cls.__name__}"
+            )
         return cls(tag, left, aux=(bvar,))
-
 
     # Instance Methods
     def get_bound_var(self) -> int:
         """Gets the index of bound variable."""
         if not self.is_qf_term():
-            raise Exception(\
-                "The top-most operator of the formula is not quantifier.")
+            raise Exception("The top-most operator of the formula is not quantifier.")
         return self._aux[type(self)._BOUND_VAR_POS]
 
     def is_forall_term(self) -> bool:
@@ -119,37 +117,50 @@ class AbsFo(AbsProp):
         """Is the top-most operator universal or existential quantifier ?"""
         return self.get_tag() in type(self)._QF_TAGS
 
-    def compute_nnf_step(self, negated: bool,
-        s: list[list], t: list[list]) -> None:
+    def compute_nnf_step(self, negated: bool, s: list[list], t: list[list]) -> None:
         """Performs NNF computation for this object."""
 
         f = self.get_operand(1)
 
-        if self.is_forall_term(): # not A f = E not f
+        if self.is_forall_term():  # not ! f = ? not f
             bvar = self.get_bound_var()
-            t.append([1, lambda z: type(self).exists(z, bvar)
-                if negated else type(self).forall(z, bvar)])
+            t.append(
+                [
+                    1,
+                    lambda z: type(self).exists(z, bvar)
+                    if negated
+                    else type(self).forall(z, bvar),
+                ]
+            )
             s.append([negated, f])
             return
 
-        if self.is_exists_term(): # not E f = A not f
+        if self.is_exists_term():  # not ? f = ! not f
             bvar = self.get_bound_var()
-            t.append([1, lambda z: type(self).forall(z, bvar)
-                if negated else type(self).exists(z, bvar)])
+            t.append(
+                [
+                    1,
+                    lambda z: type(self).forall(z, bvar)
+                    if negated
+                    else type(self).exists(z, bvar),
+                ]
+            )
             s.append([negated, f])
             return
 
         super().compute_nnf_step(negated, s, t)
 
-    def get_free_vars_and_consts_pre_step(self,\
-        bound_vars: list, free_vars: list) -> None:
+    def get_free_vars_and_consts_pre_step(
+        self, bound_vars: list, free_vars: list
+    ) -> None:
         """Performs computation in prefix order for this object."""
         if self.is_forall_term() or self.is_exists_term():
             bound_vars.append(self.get_bound_var())
             return
 
-    def get_free_vars_and_consts_post_step(self,\
-        bound_vars: list, free_vars: list) -> None:
+    def get_free_vars_and_consts_post_step(
+        self, bound_vars: list, free_vars: list
+    ) -> None:
         """Performs computation in postfix order for this object."""
         if self.is_forall_term() or self.is_exists_term():
             bound_vars.remove(self.get_bound_var())
@@ -167,9 +178,13 @@ class AbsFo(AbsProp):
             assoc[id(self)] = self
             return
 
-        if self.is_land_term() or self.is_lor_term()\
-            or self.is_implies_term() or self.is_iff_term():
-            left  = assoc[id(self.get_operand(1))]
+        if (
+            self.is_land_term()
+            or self.is_lor_term()
+            or self.is_implies_term()
+            or self.is_iff_term()
+        ):
+            left = assoc[id(self.get_operand(1))]
             right = assoc[id(self.get_operand(2))]
             assoc[id(self)] = type(self).binop(self.get_tag(), left, right)
             return
@@ -193,17 +208,17 @@ class AbsFo(AbsProp):
             g = assoc[id(self.get_operand(1))]
 
             if g.is_true_atom():
-                # A x T = T
+                # ! [x] : T = T
                 assoc[id(self)] = type(self).true_const()
                 return
 
             if g.is_false_atom():
-                if type(self).st is not None:
-                    if type(self).st.get_domain_size() > 0:
-                        # A x F = F if there is at least one vertex.
+                if type(self).st != None:
+                    if len(type(self).st.domain) > 0:
+                        # ! [x] : F = F if there is at least one vertex.
                         assoc[id(self)] = type(self).false_const()
                     else:
-                        # A x F = T if there is no vertex.
+                        # ! [x] : F = T if there is no vertex.
                         assoc[id(self)] = type(self).true_const()
                     return
 
@@ -215,17 +230,17 @@ class AbsFo(AbsProp):
             g = assoc[id(self.get_operand(1))]
 
             if g.is_true_atom():
-                if type(self).st is not None:
-                    if type(self).st.get_domain_size() > 0:
-                        # E x T = T if there is at least one vertex.
+                if type(self).st != None:
+                    if len(type(self).st.domain) > 0:
+                        # ? [x] : T = T if there is at least one vertex.
                         assoc[id(self)] = type(self).true_const()
                     else:
-                        # E x T = F if there is no vertex.
+                        # ? [x] : T = F if there is no vertex.
                         assoc[id(self)] = type(self).false_const()
                     return
 
             if g.is_false_atom():
-                # E x F = F
+                # ? [x] : F = F
                 assoc[id(self)] = type(self).false_const()
                 return
 
@@ -237,11 +252,13 @@ class AbsFo(AbsProp):
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""
         if self.is_forall_term() or self.is_exists_term():
-            out  = "("
-            out +=  type(self).get_forall_tag() \
-                if self.is_forall_term() else type(self).get_exists_tag()
+            out = "("
+            out += ( \
+                type(self).get_forall_tag() if self.is_forall_term() \
+                                       else type(self).get_exists_tag()\
+            )
             out += " "
-            out += f"{NameMgr.lookup_name(self.get_bound_var())}"
+            out += f"[{NameMgr.lookup_name(self.get_bound_var())}] :"
             out += " "
             return out
         return super().make_str_pre_step()
@@ -263,6 +280,5 @@ class AbsFo(AbsProp):
         if self.is_forall_term() or self.is_exists_term():
             bvar = self.get_bound_var()
             name = NameMgr.lookup_name(bvar)
-            return f"\"A {name}\"" \
-                if self.is_forall_term() else f"\"E {name}\""
+            return f'"! [{name}] :"' if self.is_forall_term() else f'"? [{name}] :"'
         return super().make_node_str_step()

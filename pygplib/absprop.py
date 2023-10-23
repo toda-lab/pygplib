@@ -1,7 +1,9 @@
 """Class of propositional logic with true and false and no variable"""
 
-from pygplib.absexpr import AbsExpr, IndexGen
-from pygplib.absneg  import AbsNeg
+from .absexpr import AbsExpr
+from .absexpr import IndexGen
+from .absneg  import AbsNeg
+
 
 class AbsProp(AbsNeg):
     """Expression of Propositional Logic with true and false and no variable
@@ -16,17 +18,18 @@ class AbsProp(AbsNeg):
         _UNOP_TAGS: tuple of strings, representing types of uniary operator.
         _EXPR_TAGS: tuple of available tags in this class.
     """
+
     # Tag-related Variables and Methods
-    _LAND   = "&"
-    _LOR    = "|"
-    _IMPLIES= "->"
-    _IFF    = "<->"
+    _LAND = "&"
+    _LOR = "|"
+    _IMPLIES = "->"
+    _IFF = "<->"
 
-    _ATOM_TAGS  = AbsNeg._ATOM_TAGS
+    _ATOM_TAGS = AbsNeg._ATOM_TAGS
     _BINOP_TAGS = (_LAND, _LOR, _IMPLIES, _IFF)
-    _UNOP_TAGS  = AbsNeg._UNOP_TAGS
+    _UNOP_TAGS = AbsNeg._UNOP_TAGS
 
-    _EXPR_TAGS  = _ATOM_TAGS + _BINOP_TAGS + _UNOP_TAGS
+    _EXPR_TAGS = _ATOM_TAGS + _BINOP_TAGS + _UNOP_TAGS
 
     @classmethod
     def get_land_tag(cls) -> str:
@@ -47,7 +50,6 @@ class AbsProp(AbsNeg):
     def get_iff_tag(cls) -> str:
         """Gets tag of logical equivalence."""
         return cls._IFF
-
 
     # Constructor-related Methods
     @classmethod
@@ -100,8 +102,10 @@ class AbsProp(AbsNeg):
             right:  right operand
         """
         if tag not in cls._BINOP_TAGS:
-            raise ValueError(f"Expression tag, {tag}, is not available\
-                in {cls.__name__}")
+            raise ValueError(
+                f"Expression tag, {tag}, is not available\
+                in {cls.__name__}"
+            )
         return cls(tag, left, right)
 
     @classmethod
@@ -117,19 +121,18 @@ class AbsProp(AbsNeg):
             raise ValueError("Expression list is empty.")
         assert tag in [cls.get_land_tag(), cls.get_lor_tag()]
 
-        def binop_batch_rec(tag: str, expr_li: list,\
-            begin: int, end: int) -> AbsExpr:
+        def binop_batch_rec(tag: str, expr_li: list, begin: int, end: int) -> AbsExpr:
             assert begin < end
 
-            if begin+1 == end:
+            if begin + 1 == end:
                 return expr_li[begin]
-            if begin+2 == end:
-                left  = expr_li[begin]
-                right = expr_li[begin+1]
+            if begin + 2 == end:
+                left = expr_li[begin]
+                right = expr_li[begin + 1]
                 return type(left).binop(tag, left, right)
 
-            mid   = (begin+end)//2
-            left  = binop_batch_rec(tag, expr_li, begin, mid)
+            mid = (begin + end) // 2
+            left = binop_batch_rec(tag, expr_li, begin, mid)
             right = binop_batch_rec(tag, expr_li, mid, end)
             return type(left).binop(tag, left, right)
 
@@ -160,8 +163,7 @@ class AbsProp(AbsNeg):
         """Is the top-most operator logical equivalence ?"""
         return self.get_tag() == type(self)._IFF
 
-    def compute_nnf_step(self, negated: bool,
-        s: list[list], t: list[list]) -> None:
+    def compute_nnf_step(self, negated: bool, s: list[list], t: list[list]) -> None:
         """Performs NNF computation for this object."""
 
         f = self.get_operand(1)
@@ -170,57 +172,57 @@ class AbsProp(AbsNeg):
         if self.is_land_term():
             if negated:
                 # not (f and g) = not f or not g
-                t.append( [2, lambda y,z: type(self).lor(y,z)] )
-                s.append( [True, f] )
-                s.append( [True, g] )
+                t.append([2, lambda y, z: type(self).lor(y, z)])
+                s.append([True, f])
+                s.append([True, g])
                 return
             else:
                 # f and g
-                t.append( [2, lambda y,z: type(self).land(y,z)] )
-                s.append( [False, f] )
-                s.append( [False, g] )
+                t.append([2, lambda y, z: type(self).land(y, z)])
+                s.append([False, f])
+                s.append([False, g])
                 return
 
         if self.is_lor_term():
             if negated:
                 # not (f or g) = not f and not g
-                t.append( [2, lambda y,z: type(self).land(y,z)] )
-                s.append( [True, f] )
-                s.append( [True, g] )
+                t.append([2, lambda y, z: type(self).land(y, z)])
+                s.append([True, f])
+                s.append([True, g])
                 return
             else:
                 # f or g
-                t.append( [2, lambda y,z: type(self).lor(y,z)] )
-                s.append( [False, f] )
-                s.append( [False, g] )
+                t.append([2, lambda y, z: type(self).lor(y, z)])
+                s.append([False, f])
+                s.append([False, g])
                 return
 
         if self.is_implies_term():
             if negated:
                 # not (f -> g) = f and not g
-                t.append( [2, lambda y,z: type(self).land(y,z)] )
-                s.append( [False, f] )
-                s.append( [True,  g] )
+                t.append([2, lambda y, z: type(self).land(y, z)])
+                s.append([False, f])
+                s.append([True, g])
                 return
             else:
                 # f -> g = not f or g
-                t.append( [2, lambda y,z: type(self).lor(y,z)] )
-                s.append( [True,  f] )
-                s.append( [False, g] )
+                t.append([2, lambda y, z: type(self).lor(y, z)])
+                s.append([True, f])
+                s.append([False, g])
                 return
 
         if self.is_iff_term():
             if negated:
                 # not (f <-> g) = not (f -> g) or not (g -> f)
-                t.append( [2, lambda y,z: type(self).lor(y,z)] )
-                s.append( [True, type(self).implies(f,g)] )
-                s.append( [True, type(self).implies(g,f)] )
+                t.append([2, lambda y, z: type(self).lor(y, z)])
+                s.append([True, type(self).implies(f, g)])
+                s.append([True, type(self).implies(g, f)])
                 return
             else:
                 #    (f <-> g) =  (f -> g) and (g -> f)
-                t.append( [2, lambda y,z: type(self).land(y,z)] )
-                s.append( [False, type(self).implies(f,g)] )
-                s.append( [False, type(self).implies(g,f)] )
+                t.append([2, lambda y, z: type(self).land(y, z)])
+                s.append([False, type(self).implies(f, g)])
+                s.append([False, type(self).implies(g, f)])
                 return
 
         super().compute_nnf_step(negated, s, t)
@@ -230,57 +232,58 @@ class AbsProp(AbsNeg):
 
         # a <-> b and c:  (-a or b) and (-a or c) and (a or -b or -c)
         if self.is_land_term():
-            a  = igen.get_next()
+            a = igen.get_next()
             b = assoc[id(self.get_operand(1))]
             c = assoc[id(self.get_operand(2))]
 
-            cnf.append( (-a, b)    )
-            cnf.append( (-a, c)    )
-            cnf.append( ( a,-b,-c) )
+            cnf.append((-a, b))
+            cnf.append((-a, c))
+            cnf.append((a, -b, -c))
 
             assoc[id(self)] = a
             return
 
         # a <-> b or  c:  (a or -c) and (a or -b) and (-a or b or c)
         if self.is_lor_term():
-            a  = igen.get_next()
+            a = igen.get_next()
             b = assoc[id(self.get_operand(1))]
             c = assoc[id(self.get_operand(2))]
 
-            cnf.append( ( a,-c)    )
-            cnf.append( ( a,-b)    )
-            cnf.append( (-a, b, c) )
+            cnf.append((a, -c))
+            cnf.append((a, -b))
+            cnf.append((-a, b, c))
 
             assoc[id(self)] = a
             return
 
-        assert not self.is_implies_term() and not self.is_iff_term(),\
-            "compute_cnf_step() assumes reduced formulas"
+        assert (
+            not self.is_implies_term() and not self.is_iff_term()
+        ), "compute_cnf_step() assumes reduced formulas"
         super().compute_cnf_step(igen, assoc, cnf)
 
     def reduce_step(self, assoc: dict) -> None:
         """Performs reduce computation for this object."""
         if self.is_land_term():
-            left  = assoc[id(self.get_operand(1))]
+            left = assoc[id(self.get_operand(1))]
             right = assoc[id(self.get_operand(2))]
 
             if left.is_true_atom():  # T and right = right
                 assoc[id(self)] = right
                 return
 
-            if left.is_false_atom(): # F and right = F
+            if left.is_false_atom():  # F and right = F
                 assoc[id(self)] = type(self).false_const()
                 return
 
-            if right.is_true_atom(): # left and T = left
+            if right.is_true_atom():  # left and T = left
                 assoc[id(self)] = left
                 return
 
-            if right.is_false_atom():# left and F = F
+            if right.is_false_atom():  # left and F = F
                 assoc[id(self)] = type(self).false_const()
                 return
 
-            if left == right:        # left and left = left
+            if left == right:  # left and left = left
                 assoc[id(self)] = left
                 return
 
@@ -288,26 +291,26 @@ class AbsProp(AbsNeg):
             return
 
         if self.is_lor_term():
-            left  = assoc[id(self.get_operand(1))]
+            left = assoc[id(self.get_operand(1))]
             right = assoc[id(self.get_operand(2))]
 
             if left.is_true_atom():  # T or right = T
                 assoc[id(self)] = type(self).true_const()
                 return
 
-            if left.is_false_atom(): # F or right = right
+            if left.is_false_atom():  # F or right = right
                 assoc[id(self)] = right
                 return
 
-            if right.is_true_atom(): # left or T = T
+            if right.is_true_atom():  # left or T = T
                 assoc[id(self)] = type(self).true_const()
                 return
 
-            if right.is_false_atom():# left or F = left
+            if right.is_false_atom():  # left or F = left
                 assoc[id(self)] = left
                 return
 
-            if left == right:        # left or left = left
+            if left == right:  # left or left = left
                 assoc[id(self)] = left
                 return
 
@@ -318,15 +321,19 @@ class AbsProp(AbsNeg):
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""
-        if self.is_land_term() or self.is_lor_term()\
-            or self.is_implies_term() or self.is_iff_term():
+        if (
+            self.is_land_term()
+            or self.is_lor_term()
+            or self.is_implies_term()
+            or self.is_iff_term()
+        ):
             return "("
         return super().make_str_pre_step()
 
     def make_str_in_step(self) -> str:
         """Makes string in infix order for this object."""
         if self.is_land_term():
-            return " " + type(self).get_land_tag()  + " "
+            return " " + type(self).get_land_tag() + " "
         if self.is_lor_term():
             return " " + type(self).get_lor_tag() + " "
         if self.is_implies_term():
@@ -337,8 +344,12 @@ class AbsProp(AbsNeg):
 
     def make_str_post_step(self) -> str:
         """Makes string in postfix order for this object."""
-        if self.is_land_term() or self.is_lor_term()\
-            or self.is_implies_term() or self.is_iff_term():
+        if (
+            self.is_land_term()
+            or self.is_lor_term()
+            or self.is_implies_term()
+            or self.is_iff_term()
+        ):
             return ")"
         return super().make_str_post_step()
 

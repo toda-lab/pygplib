@@ -1,38 +1,65 @@
 """Reconfiguration problem solver for first-order properties of graph vertices"""
-import os
 import time
 
 from argparse import ArgumentParser
-
 from pysat.formula import CNF
 from pysat.solvers import Solver
 
-from pygplib import NameMgr, Fo, GrSt
-from pygplib import util
+from pygplib import NameMgr, Fog, GrSt
 from pygplib import op
-from bmc     import Bmc
+from bmc import Bmc
 
 
 def get_option():
     """Gets command-line options."""
     ap = ArgumentParser()
-    ap.add_argument("-b", "--bound", type=int,
-                default=10,
-                help="Specify maximum bound")
-    ap.add_argument("-t", "--trans", type=str,
-                default="TJ",
-                help="Specify transition relation (TS or TJ)")
-    ap.add_argument("-d", "--tmpdir", type=str,
-                default="tmp",
-                help="Specify temporary directory")
-    ap.add_argument("-e", "--ecc", type=str,
-                default="edge",
-                help="Specify ECC type (edge or clique)")
+    ap.add_argument("-b", "--bound", type=int, default=10, help="Specify maximum bound")
+    ap.add_argument(
+        "-t",
+        "--trans",
+        type=str,
+        default="TJ",
+        help="Specify transition relation (TS or TJ)",
+    )
+    ap.add_argument(
+        "-e",
+        "--encoding",
+        type=str,
+        default="edge",
+        help="Specify ECC type (edge, clique, direct)",
+    )
     ap.add_argument("arg1", help="dimacs graph file")
     ap.add_argument("arg2", help="formula file")
 
     return ap.parse_args()
 
+def parse_graph_file(filename: str) -> list[tuple[int, ...], ...]:
+    """Computes a graph file in DIMACS format.
+
+    Returns:
+        list of pairs of nonzero positive integers with each pair representing
+        an edge.
+    """
+    data = ""
+    with open(filename, "r", encoding="utf-8") as f:
+        data = f.read()
+
+    res = []
+    for line in data.split("\n"):
+        if len(line) == 0:
+            continue
+        if line[0] == "e":
+            v = int(line.split(" ")[1])
+            w = int(line.split(" ")[2])
+            if v == w:
+                raise Exception(f"loop ({v},{w}) found")
+            if w < v:
+                tmp = v
+                v = w
+                w = tmp
+            assert v < w
+            res.append((v, w))
+    return res
 
 def parse_formula_file(file_name: str) -> tuple[str, str, str, str]:
     """Parses formula-file."""
@@ -41,8 +68,8 @@ def parse_formula_file(file_name: str) -> tuple[str, str, str, str]:
 
     state_str = ""
     trans_str = ""
-    ini_str   = ""
-    fin_str   = ""
+    ini_str = ""
+    fin_str = ""
     for line in data.split("\n"):
         if len(line) == 0:
             continue
@@ -78,7 +105,7 @@ def convert_ini_str(formula_str: str, variable_name: list) -> str:
     if len(vertex_name) != len(variable_name):
         raise Exception("number of integers in init state is unmatching")
 
-    return " & ".join( [n+"="+m  for n, m in zip(variable_name, vertex_name)] )
+    return " & ".join([n + "=" + m for n, m in zip(variable_name, vertex_name)])
 
 
 def convert_fin_str(formula_str: str, variable_name: list) -> str:
@@ -107,59 +134,41 @@ def convert_fin_str(formula_str: str, variable_name: list) -> str:
     tmp = []
     # subset relation
     for n in variable_name:
-        tmp.append("(" + " | ".join([n+"="+m for m in vertex_name]) + ")")
+        tmp.append("(" + " | ".join([n + "=" + m for m in vertex_name]) + ")")
     # supset relation
     for m in vertex_name:
-        tmp.append("(" + " | ".join([n+"="+m for n in variable_name]) + ")")
+        tmp.append("(" + " | ".join([n + "=" + m for n in variable_name]) + ")")
     return " & ".join(tmp)
 
 
-start_time  = time.time()
-ecc_jar = "ECC8.jar"
-tmp_dir = "tmp/"
-# NOTE: all data in tmp directory must be deleted before execution.
-# Otherwise, ECC8 will recycle past data.
+start_time = time.time()
 
 args = get_option()
+graph_file    = args.arg1
+formula_file  = args.arg2
+max_bound     = args.bound
+trans_type    = args.trans
+encoding_type = args.encoding
 
-graph_file   = args.arg1
-formula_file = args.arg2
-max_bound    = args.bound
-trans_type   = args.trans
-tmp_dir      = args.tmpdir
-ecc_type     = args.ecc
-
-basename  = os.path.splitext(os.path.basename(graph_file))[0]
-cover_file= tmp_dir + "/" + basename + ".col-rand.EPSc.cover"
-cnf_file  = tmp_dir + "/" + basename + ".cnf"
-log_file  = tmp_dir + "/" + basename + ".sover.log"
+edge_list = parse_graph_file(graph_file)
+vertex_list = []
+for e in edge_list:
+    vertex_list.append(e[0])
+    vertex_list.append(e[1])
+vertex_list = list(set(vertex_list))
 
 phi = parse_formula_file(formula_file)
-state_expr = Fo.read(phi[0])
-trans_expr = Fo.read(phi[1]) if phi[1] != "" else None
-name_list  = [NameMgr.lookup_name(v) for v in op.get_free_vars(state_expr)]
-ini_expr   = Fo.read(convert_ini_str(phi[2], name_list))
-fin_expr   = Fo.read(convert_fin_str(phi[3], name_list))
+state_expr = Fog.read(phi[0])
+trans_expr = Fog.read(phi[1]) if phi[1] != "" else None
+name_list = [NameMgr.lookup_name(v) for v in op.get_free_vars(state_expr)]
+ini_expr = Fog.read(convert_ini_str(phi[2], name_list))
+fin_expr = Fog.read(convert_fin_str(phi[3], name_list))
 trans_type = "None" if phi[1] != "" else "TJ"
 
-if ecc_type == "edge":
-    ecc = util.compute_ecc_edge(graph_file)
-    domain = util.convert_ecc_to_domain(ecc)
-elif ecc_type == "clique":
-    util.run_ecc8(graph_file, tmp_dir, ecc_jar)
-    with open(cover_file, "r", encoding="utf-8") as g:
-        _data = g.read()
-
-    ecc = util.parse_ecc(_data)
-    domain = util.convert_ecc_to_domain(ecc)
-    domain = util.update_domain_by_edge_addition(ecc, domain)
-else:
-    raise Exception("undefined ECC type")
-
-Fo.st = GrSt(domain)
+Fog.st = GrSt(vertex_list, edge_list, encoding=encoding_type)
 bmc = Bmc(state_expr, trans_expr, ini_expr, fin_expr, trans_type=trans_type)
 
-solve_time   = 0
+solve_time = 0
 compile_time = 0
 solved = False
 for step in range(0, max_bound):
@@ -183,10 +192,10 @@ for step in range(0, max_bound):
     print("c SATISFIABLE")
     ans = []
     for assign in bmc.decode(model):
-        res = Fo.st.get_interpretation_of_assign(assign)
-        state = [res[key] + 1 for key in sorted(res.keys())]
+        res = Fog.st.decode_assignment(assign)
+        state = [Fog.st.object_to_vertex(res[key]) for key in res.keys()]
         ans.append(state)
-        print("a " + " ".join(map(str,state)))
+        print("a " + " ".join(map(str, state)))
     break
 
 if not solved:

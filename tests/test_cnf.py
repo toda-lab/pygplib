@@ -1,18 +1,18 @@
-from pygplib import Cnf, Prop, NameMgr
-import pygplib.op as op
+from pygplib import Cnf, Prop, NameMgr, op
+
 
 def test_cnf_mgr():
     tests = [
         "T",
         "F",
         "x@1",
-        "! x@1",
+        "~ x@1",
         "x@1 & x@2",
         "x@1 | x@2",
         "x@1 -> x@2",
         "x@1 <-> x@2",
         "x@1 <-> x@2 & x@3",
-        "T | ! x@1 <-> x@2 & x@3",
+        "T | ~ x@1 <-> x@2 & x@3",
     ]
     NameMgr.clear()
 
@@ -25,7 +25,7 @@ def test_cnf_mgr():
         elif cnf1 == ((),):
             cnf_set1 = {""}
         else:
-            cnf_set1 = {",".join(map(str,sorted(cls))) for cls in cnf1}
+            cnf_set1 = {",".join(map(str, sorted(cls))) for cls in cnf1}
 
         mgr = Cnf((res,))
         assert mgr.get_ncls() == len(cnf1)
@@ -46,5 +46,3 @@ def test_cnf_mgr():
             max_var = val if max_var < val else max_var
 
         assert mgr.get_nvar() == max_var
-
-

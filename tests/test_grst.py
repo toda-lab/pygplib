@@ -1,116 +1,131 @@
-from pygplib import GrSt, NameMgr, Fo
-import pygplib.op as op
+from pygplib import GrSt, NameMgr, Fog, Prop
+from pygplib import op
+
 
 def test_init():
     tests = [
-        (((1,2),(1,)), (2, 2,("11","10"))),
-        (((),(1,)), (2, 1, ("0","1"))),
-        (((1,2,3),(1,),(2,3),(3,)), (4, 3, ("111", "100", "011", "001"))),
+        (
+            #  V1---V2
+            #  |   /
+            #  |  /
+            #  | /
+            #  V3---V5
+            #
+            # vertex_list
+            [2,3,1,5],
+            # edge_list
+            [
+                (2,1),
+                (3,1),
+                (2,3),
+                (3,5),
+            ],
+            # encoding
+            "edge",
+            # prefix
+            "W",
+        ),
+        (
+            #  V1---V2
+            #  |   /
+            #  |  /
+            #  | /
+            #  V3---V5
+            #
+            # vertex_list
+            [2,3,1,5],
+            # edge_list
+            [
+                (2,1),
+                (3,1),
+                (2,3),
+                (3,5),
+            ],
+            # encoding
+            "clique",
+            # prefix
+            "W",
+        ),
     ]
 
-    NameMgr.clear()
+    for vertex_list, edge_list, encoding, prefix in tests:
+        NameMgr.clear()
+        st = GrSt(vertex_list,edge_list,encoding=encoding,prefix=prefix)
 
-    for domain, expected in tests:
+        for v in vertex_list:
+            assert st.object_to_vertex(st.vertex_to_object(v)) == v
+        for obj in st.domain:
+            assert st.vertex_to_object(st.object_to_vertex(obj)) == obj
 
-        st = GrSt(domain)
-        assert st._N == expected[0]
-        assert st._M == expected[1]
+        assert st._encoding == encoding
+        assert st._prefix == prefix
 
-        assert st._N == len(st._D)
+        assert len(set(vertex_list)) == len(set(st.verts))
+        for v in vertex_list:
+            assert st.vertex_to_object(v) in st.verts
+        for w in st.verts:
+            assert st.object_to_vertex(w) in vertex_list
 
-        for code in st._D:
-            assert len(code) == st._M
-            for val in code:
-                assert val == 0 or val == 1
+        assert len(set(edge_list)) == len(set(st.edges))
+        for e in edge_list:
+            f = tuple(sorted(map(lambda v: st.vertex_to_object(v), e)))
+            assert f in st.edges 
+        for f in st.edges:
+            assert (f[1],f[0]) not in st.edges
+            e = list(map(lambda w: st.object_to_vertex(w), f))
+            assert (e[0],e[1]) in edge_list or (e[1],e[0]) in edge_list
 
-        tab = [0]*st._N
-        for code in st._D:
-            key = tuple(sorted([i for i, v in enumerate(code) if v == 1]))
-            assert key in st._invdict
-            tab[st._invdict[key]] = 1
-
-        for i in range(st._N):
-            assert tab[i] == 1
-
-        tup = st.get_constant_symbol_tuple()
-        for i in range(st._N):
-            name = st._prefix + f"{i+1}"
-            assert NameMgr.lookup_index(name) == tup[i]
-
-        assert len(st._V) == st._N
-        assert len(set(st._V)) == st._N
-
-        for i in range(st._N):
-            code = st.get_code(tup[i])
-            assert "".join(map(str,code)) == expected[2][i]
-
-    st = GrSt(((),(1,)), prefix="VRT")
-    Fo.st = st
-    tup = st.get_constant_symbol_tuple()
-    form = Fo.edg(tup[0], tup[1])
-    res_str=op.to_str(form)
-    assert res_str == "edg(VRT1, VRT2)"
-
-def test_enc_dec():
+def test__compute_domain_constraint_DNF_clique_encoding():
     tests = [
-        ("x@1", ("x", 1)),
-        ("x@2", ("x", 2)),
-        ("Va@12", ("Va", 12)),
-        ("V1_a@21", ("V1_a", 21)),
+        #  | 1 2
+        #--------
+        # 1| 1 0
+        # 2| 1 1
+        # 3| 0 1
+        ("T", [1,2,3], [(1,2), (2,3)], "edge", set()),
+        ("! [x] : ? [y] : x=y", [1,2,3], [(1,2), (2,3)], "edge", set()),
+        (
+            "x=y",
+            [1,2,3],
+            [(1,2), (2,3)],
+            "edge",
+            {"(((y@1 & (~ y@2)) | (y@1 & y@2)) | ((~ y@1) & y@2))",\
+             "(((x@1 & (~ x@2)) | (x@1 & x@2)) | ((~ x@1) & x@2))"},
+        ),
+        #  | 1 2
+        #--------
+        # 1| 1 0
+        # 2| 1 1
+        # 3| 0 0
+        # 4| 0 1
+        (
+            "x=y", 
+            [1,2,3,4], 
+            [(1,2), (2,4)], 
+            "edge",
+            {
+            "((((y@1 & (~ y@2)) | (y@1 & y@2)) | ((~ y@1) & (~ y@2))) | ((~ y@1) & y@2))", \
+            "((((x@1 & (~ x@2)) | (x@1 & x@2)) | ((~ x@1) & (~ x@2))) | ((~ x@1) & x@2))"
+            }),
     ]
 
     NameMgr.clear()
+    Fog.st = None
 
-    domain = ((1,2),(1,),(12,22))
-    st = GrSt(domain)
+    for test_str, vertex_list, edge_list, encoding, expected in tests:
+        res = Fog.read(test_str)
+        st = GrSt(vertex_list, edge_list, encoding=encoding)
+        Fog.st = st
+        Prop.st = st
 
-    for test_str, expected in tests:
-        NameMgr.lookup_index(test_str.split("@")[0])
-        index = NameMgr.lookup_index(test_str)
+        tup = tuple([ \
+            st._compute_domain_constraint_DNF_clique_encoding(v) \
+                for v in op.get_free_vars(res)])
+        res_set = set()
+        for i in range(len(tup)):
+            res_str = op.to_str(tup[i])
+            res_set.add(res_str)
+        assert res_set == expected, f"{res_set}, {expected}"
 
-        assert st.exists_symbol(index)
-        res = st.get_symbol_index(index)
-        assert NameMgr.lookup_name(res) == expected[0]
-
-        pos = st.get_code_pos(index)
-        assert pos+1 == expected[1]
-
-        assert st.exists_prop_var(res, pos)
-        assert st.get_prop_var(res,pos) == index
-
-def test_get_interpretation_of_assign():
-    tests = [
-        ("-x@1,x@2", {"01"}), 
-        ("x@2,-x@1", {"01"}), 
-        ("-x@1,x@2,y@1,y@2", {"01","11"}), 
-        ("-x@1,y@1,x@2,y@2", {"01","11"}), 
-        ("-x@1,x@2,-y@1,y@2", {"01"}), 
-        ("-x@1,x@2,y@1,y@2,-z@1,-z@2", {"01","11","00"}), 
-        ("-x@1,x@2,y@1,y@2,-z@1,-z@2,w@1,-w@2", {"01","11","00","10"}), 
-    ]
-
-    NameMgr.clear()
-
-    domain = ((1,2),(1,),(2,),())
-    st = GrSt(domain)
-    const_tup = st.get_constant_symbol_tuple()
-
-    for test_str, expected in tests:
-        assign = []
-        for name in test_str.split(","):
-            sign = 1
-            name = name.replace(" ", "")
-            if name[0] == "-":
-                sign = -1
-            name = name.replace("-","")
-            NameMgr.lookup_index(name.split("@")[0])
-            index = NameMgr.lookup_index(name)
-            assign.append(sign * index)
-        res = st.get_interpretation_of_assign(assign)
-        elem_set = set()
-        for key in res:
-            elem_index = const_tup[res[key]]
-            code = st.get_code(elem_index)
-            elem_set.add("".join(map(str, code)))
-        assert elem_set == expected
-
+        Fog.st = None
+        Prop.st = None

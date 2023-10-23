@@ -1,9 +1,10 @@
 from pygplib import NameMgr
 
+
 def test_name_mgr():
     test_names = [
         ("x12", True),
-        ("y", True), 
+        ("y", True),
         ("V1", False),
         ("k2", True),
         ("x1", True),
@@ -42,5 +43,3 @@ def test_name_mgr():
         name = NameMgr.lookup_name(index)
         res = NameMgr.lookup_index(name)
         assert res == index, f"{res}, {index}"
-
-

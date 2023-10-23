@@ -2,12 +2,14 @@
 
 import sys
 
-from pygplib.name import NameMgr
-from pygplib.prop import Prop
-from pygplib import op
+from .name import NameMgr
+from .prop import Prop
+from .     import op
+
 
 class Cnf:
     """CNF Converter Class"""
+
     def __init__(self, expr_tup: tuple):
         """Constructs CNF from tuple of formulas with Tseitin transformation.
 
@@ -40,11 +42,8 @@ class Cnf:
             self._packed_cnf = ((),)
             return
 
-        result = [tuple([self.encode_lit(x) for x in cls])\
-                    for cls in cnf ]
-        self._nvar = max(\
-                [max(map(abs,cls)) for cls in result]\
-                )
+        result = [tuple([self.encode_lit(x) for x in cls]) for cls in cnf]
+        self._nvar = max([max(map(abs, cls)) for cls in result])
         """number of variables"""
         assert self._nvar <= base + naux
 
@@ -60,10 +59,10 @@ class Cnf:
         """Encodes literal.
 
         Args:
-            lit: literal appearing input propositional formula.
+            lit: literal of an internal CNF variable.
 
         Returns:
-            int: returns literal of CNF.
+            int: returns a literal of an external CNF variable.
         """
         var = abs(lit)
         if var not in self._dic:
@@ -71,35 +70,41 @@ class Cnf:
             self._dic[var] = len(self._inv_list)
 
         res = self._dic[var]
-        return res if lit  > 0 else -res
+        return res if lit > 0 else -res
 
     def decode_lit(self, lit: int) -> int:
         """Decodes literal.
 
         Args:
-            lit: literal of CNF
+            lit: literal of an external CNF variable
 
         Returns:
-            int: literal of input formula.
+            int: literal of an internal CNF variable.
         """
         var = abs(lit)
         if not (0 < var <= len(self._inv_list)):
             raise IndexError
 
-        res = self._inv_list[var-1]
+        res = self._inv_list[var - 1]
         return res if lit > 0 else -res
 
-    def decode_assign(self, assign: tuple[int]) -> tuple[int]:
+    def decode_assignment(self, assign: tuple[int]) -> tuple[int]:
         """Decodes assignment.
 
         Args:
-            assign: assignment of CNF variables
+            assign: assignment of external CNF variables
 
         Returns:
-            tuple: assignment of variables in input formulas.
+            tuple: assignment of internal CNF variables (but excluding
+            auxilliary variables).
         """
-        res = [self.decode_lit(x) for x in assign]
+        res = [self.decode_lit(x) for x in assign \
+                        if abs(self.decode_lit(x)) <= self._base]
         return tuple(res)
+
+    def get_max_important_var(self) -> int:
+        """Gets the maximum index of an important variable in CNF."""
+        return self._base
 
     def get_nvar(self) -> int:
         """Gets the number of variables in CNF."""
@@ -126,29 +131,21 @@ class Cnf:
         Args:
             stream: stream (stdout if not specified) to which CNF is written.
         """
-        if stream is None:
+        if stream == None:
             stream = sys.stdout
 
-        dom = []
-        if Prop.st is not None:
-            for i in range(Prop.st.get_domain_size()):
-                tup = Prop.st.get_constant_symbol_tuple()
-                code = Prop.st.get_code(tup[i])
-                li = [pos+1 for pos, val in enumerate(code) if val == 1]
-                dom.append(f"c dom {i+1}: "+" ".join(map(str, li)))
+        enc = [
+            f"c enc {i+1} {NameMgr.lookup_name(self.decode_lit(i+1))}"
+            for i in range(self._nvar)
+            if self.decode_lit(i + 1) <= self._base
+        ]
+        body = [" ".join(map(str, cls)) + " 0" for cls in self._packed_cnf]
 
-        enc  = [f"c enc {i+1} {NameMgr.lookup_name(self.decode_lit(i+1))}"\
-            for i in range(self._nvar) if self.decode_lit(i+1) <= self._base]
-        body = [" ".join(map(str,cls)) + " 0" for cls in self._packed_cnf]
-
-        if stream is not None:
+        if stream != None:
             out = ""
             out += f"p cnf {self._nvar} {len(self._packed_cnf)}\n"
             for expr in self._expr_tup:
                 out += f"c expr {op.to_str(expr)}\n"
-            if Prop.st is not None:
-                out += "\n".join(dom+enc+body)
-            else:
-                out += "\n".join(enc+body)
+            out += "\n".join(enc + body)
             out += "\n"
             stream.write(out)
