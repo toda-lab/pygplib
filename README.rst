@@ -56,7 +56,7 @@ written as
 ``(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) & (~ x1=x2) & (~ x1=x3) & (~
 x2=x3)``, is converted into a tuple of ``Prop`` formula objects ``(g, ) + tup``, 
 with which ``Cnf`` object ``mgr`` is created.
-The CNF encoded from ``f`` is generated to ``data/f.cnf`` in 
+The CNF encoded from ``f`` is generated to ``f.cnf`` in 
 `DIMACS CNF format <http://www.satcompetition.org/2009/format-benchmarks2009.html>`__ .
 
 .. code:: python
@@ -80,7 +80,7 @@ The CNF encoded from ``f`` is generated to ``data/f.cnf`` in
     tup  = tuple([Fog.st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(f)])
     mgr = Cnf( (g, ) + tup )
-    with open("data/f.cnf","w") as out:
+    with open("f.cnf","w") as out:
         mgr.write(stream=out)
 
 Solving First-Order Expressible Property
@@ -150,7 +150,7 @@ The number of solutions can be exactly counted by model counters such as `sharpS
 
 .. code:: shell-session
 
-    $ sharpSAT data/f.cnf
+    $ sharpSAT f.cnf
     (The first part omited)
     # solutions 
     48
@@ -219,7 +219,7 @@ Solution sampling with `walksat <https://gitlab.com/HenryKautz/Walksat>`__ is as
 
 .. code:: shell-session
 
-    $ echo $(cat data/f.cnf | grep -v ^c) | walksat -numsol 5
+    $ echo $(cat f.cnf | grep -v ^c) | walksat -numsol 5
 
 Solving Reconfiguration Problems of First-Order Property
 --------------------------------------------------------

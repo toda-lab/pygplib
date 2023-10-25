@@ -227,17 +227,15 @@ A formula can be printed out in DOT format, allowing us to visualize.
    from pygplib import op
 
    f = Fog.read("! [w] : (w=x1 | w=x2 | w=x3 | edg(w,x1) | edg(w,x2) | edg(w,x3))")
-   with open("data/f.dot","w") as out:
+   with open("f.dot","w") as out:
        op.print_formula(f,stream=out,fmt="dot")
 
 .. code:: shell-session
 
-   $ dot -Tpng data/f.dot -o data/f.png
+   $ dot -Tpng f.dot -o f.png
 
-.. figure:: data/f.png
-   :alt: data/f.png
-
-   f.png
+.. image:: https://github.com/toda-lab/pygplib/blob/main/data/f.png
+   :alt: f.png
 
 The above image depicts the data structure of a first-order formula. The
 whole formula consists of objects of ``Fog`` class with the root node ``f``.
@@ -368,7 +366,7 @@ with which ``Cnf`` object ``mgr`` is created.
 
     tup  = tuple([Fog.st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(fff)])
-    with open("data/t1.dot","w") as out:
+    with open("t1.dot","w") as out:
         op.print_formula(tup[0],stream=out,fmt="dot")
 
     mgr = Cnf( (g, ) + tup )
@@ -443,10 +441,10 @@ in the above code block.
 
 .. code:: shell-session
 
-   $ dot -Tpng data/t1.dot -o data/t1.png
+   $ dot -Tpng t1.dot -o t1.png
 
-.. figure:: data/t1.png
-   :alt: data/t1.png
+.. figure:: t1.png
+   :alt: t1.png
 
    The domain constraint for ``x3``
 
@@ -491,7 +489,7 @@ formulas with external solvers, say `kissat
 
 .. code:: python
 
-    with open("data/fff.cnf","w") as out:
+    with open("fff.cnf","w") as out:
         mgr.write(stream=out)
 
 To decode a satisfying assignment, the header of the generated DIMACS CNF might
@@ -499,7 +497,7 @@ be useful.
 
 .. code:: shell-session
 
-    $ cat data/fff.cnf
+    $ cat fff.cnf
     (The first part omitted)
     c enc 2 x1@1
     c enc 4 x2@1
