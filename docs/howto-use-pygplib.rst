@@ -1,4 +1,4 @@
-Pygplib Module
+How to Use Pygplib Module
 ==========================
 
 This document provides how-to instructions for the Python library 
