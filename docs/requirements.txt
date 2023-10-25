@@ -1,4 +1,4 @@
-importlib
 sphinx
 sphinx_rtd_theme
 pyparsing
+-e .
