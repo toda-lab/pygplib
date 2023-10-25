@@ -9,20 +9,18 @@ Introduction
 ``Pygplib`` (Python First-Order Graph Property Library) is a Python module 
 for constructing, manipulating, and encoding graph properties expressible 
 with first-order logic of graphs.
-
-``Pygplib`` serves as a prototyping tool to tackle with 
+It serves as a prototyping tool to tackle with 
 various graph related applications.
 It provides access to state-of-the-art satisfiability technologies 
 without advanced knowledge.
 Basic steps to follow are :
 
 - Express a graph property of interest as a first-order formula.
-- Encode it and a graph structure into CNF, 
-  a canonical normal form for propositional formulas, with  ``pygplib``.
+- Set a graph structure, and encode a first-order formula into CNF, 
+  a canonical normal form for propositional formulas.
 - Apply satisfiability tools to the CNF to compute satisfying
   assignments.
-- Decode the result into the assignment to first-order variables with
-  ``pygplib``.
+- Decode the result into the assignment to first-order variables.
 
 Note: the current version remains in an experimental stage.
 
