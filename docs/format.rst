@@ -1,7 +1,7 @@
+.. _Format of First-Order Formula:
+
 Format of First-Order Formula
 =============================
-
-.. _Format of First-Order Formula:
 
 The ``pygplib`` mostly supports the format of untyped first-order formulas in
 the `TPTP

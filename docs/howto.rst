@@ -33,7 +33,7 @@ format <https://www.tptp.org/Seminars/TPTPWorldTutorial/LogicFOF.html>`__
 for automated theorem proving.
 A first-order formula given in string can be parsed and constructed as 
 a first-order formula object by ``Fog.read()``.
-The format is detailed in `Format of First-Order Formula`_ .
+The format is detailed in :ref:`Format of First-Order Formula`.
 
 .. code:: python
 
@@ -335,11 +335,10 @@ The following formulas are evaluated to true regardless of variables
 - ``x = x``
 - ``x = y <-> y = x``
 
+.. _EncodingFOFormula:
 
 Encoding and Solving First-Order Formula
 ----------------------------------------
-
-.. _Encoding_FO_Formula:
 
 Let us now describe how first-order formulas can be encoded into CNFs with 
 ``pygplib`` and solved with ``pysat``, a toolkit for SAT-based prototyping 

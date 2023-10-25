@@ -39,7 +39,7 @@ create a graph structure object of class ``GrSt`` with the graph ``G``
 Parse the expression of an independent set of size ``3`` 
 and construct a first-order formula object, ``f``,
 See, for first-order logic of graphs,
-`First-OrderLogicGraphs`_ and, for formula format, `Format of First-Order Formula`_ .
+:ref:`First-OrderLogicGraphs` and, for formula format, :ref:`Format of First-Order Formula`.
 
 .. code:: python
 
@@ -50,7 +50,8 @@ A *Conjunctive Normal Form* Formula (*CNF* for short) is a well-accepted canonic
 and the Cnf object created is a manager for the CNF encoded from given propositional formulas.
 It is initialized with a tuple of propositional formulas, ``(g, ) +
 tup``, considering it as the conjunction of these formulas.
-The encoding performed here is described in more details in `Encoding_FO_Formula`_ .
+The encoding performed here is described in more details in
+:ref:`EncodingFOFormula`.
 
 .. code:: python
 

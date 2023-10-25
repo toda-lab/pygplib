@@ -1,7 +1,7 @@
+.. _First-OrderLogicGraphs:
+
 First-Order Logic of Graphs
 ===========================
-
-.. _First-OrderLogicGraphs:
 
 An *atomic formula* has one of the forms: ``x = y``, ``edg(x,y)``, ``T`` or ``F``, 
 where ``x``, ``y`` are variables or constants. 

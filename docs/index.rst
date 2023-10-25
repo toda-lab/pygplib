@@ -12,8 +12,8 @@ Release v\ |version|
    :caption: Contents:
 
    getting-started
-   fog
    howto
+   fog
    format
    examples
 
