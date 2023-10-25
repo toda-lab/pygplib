@@ -8,7 +8,7 @@ Using the pygplib module
 :revision: 2.0.0
 :date: Nov., 2023
 
-:copyright: Copyright |copy| 2003-2023 Takahisa Toda.
+:copyright: Copyright |copy| 2023-2023 Takahisa Toda.
 
 .. |copy| unicode:: 0xA9
 
@@ -443,7 +443,7 @@ in the above code block.
 
    $ dot -Tpng t1.dot -o t1.png
 
-.. figure:: t1.png
+.. image:: ../data/t1.png
    :alt: t1.png
 
    The domain constraint for ``x3``

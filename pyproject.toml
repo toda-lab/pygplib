@@ -6,6 +6,7 @@ authors = ["Takahisa Toda <todat@acm.org>"]
 license = "MIT"
 readme = "README.rst"
 repository = "https://github.com/toda-lab/pygplib"
+documentation = "https://pygplib.readthedocs.io/en/latest/"
 keywords = [
     "logic",
     "first-order-logic",
@@ -25,18 +26,6 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-]
-
-include = [
-  "docs",
-  "data",
-  "tests",
-  "examples",
-  "tox.ini",
-]
-
-exclude = [
-  "docs/_build",
 ]
 
 [tool.poetry.dependencies]

@@ -14,12 +14,16 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath("../pygplib"))
 
+from pygplib import __version__ as pygplib_version
+
 # -- Project information -----------------------------------------------------
 
 project = 'pygplib'
 copyright = '2023, Takahisa Toda'
 author = 'Takahisa Toda'
 
+version = pygplib_version
+release = pygplib_version
 
 # -- General configuration ---------------------------------------------------
 
