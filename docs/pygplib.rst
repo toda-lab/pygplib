@@ -431,8 +431,8 @@ in the above code block.
    :alt: t1.png
 
 The above image depicts the domain constraint for ``x3``, where ``x3@1``,
-``x3@2``, and ``x3@3`` represents propositional variables representing the
-binary code of ``x``.
+``x3@2``, ``x3@3``, ``x3@4`` represents a sequence of propositional variables 
+representing the binary code of ``x``.
 The ``tup`` consists of the constraints for ``x1``, ``x2``, and ``x3``.
 The ``g`` represents the propositional formula for ``f`` except the
 domain constraint.
