@@ -1,28 +1,12 @@
-Using the pygplib module
+Pygplib Module
 ==========================
 
-:author: Takahisa Toda
-:address: todat@acm.org
-
-:revision: |version|
-:date: Nov., 2023
-
-:copyright: Copyright |copy| 2023-2023 Takahisa Toda.
-
-.. |copy| unicode:: 0xA9
-
-:abstract: This document provides how-to instructions for the
-    Python library for constructing, manipulating, 
-    and encoding graph properties expressible with first-order logic of graphs.
-    We mean by *graphs* graphs with no directed edge, no multiple edge, 
-    no isolated edge, at most one isolated vertex, and no loop.
-
-.. sectnum::    :depth: 4
-
-.. contents::   :depth: 4
-
------------
-
+This document provides how-to instructions for the Python library 
+for constructing, manipulating, and encoding graph properties expressible 
+with first-order logic of graphs. We mean by graphs graphs 
+with no directed edge, no multiple edge, no isolated edge, 
+at most one isolated vertex, and no loop.
+See, for first-order logic of graphs, :ref:`First-OrderLogicGraphs`.
 
 Parsing First-Order Formula
 ---------------------------
@@ -31,9 +15,9 @@ The ``pygplib`` mostly supports the format of untyped first-order formulas in
 the `TPTP
 format <https://www.tptp.org/Seminars/TPTPWorldTutorial/LogicFOF.html>`__
 for automated theorem proving.
+The format is detailed in :ref:`Format of First-Order Formula`.
 A first-order formula given in string can be parsed and constructed as 
 a first-order formula object by ``Fog.read()``.
-The format is detailed in :ref:`Format of First-Order Formula`.
 
 .. code:: python
 
@@ -409,7 +393,7 @@ The output must be UNSATISFIABLE as the current graph has no independent set of 
     #  /   \
     # V4---V5
 
-Recomputing the same formula for the following graph, we will in turn obtain an
+Recomputing the same formula but for the following graph, we will in turn obtain an
 independent set, say ``[7, 6, 1]``.
 
 .. code:: python
@@ -445,8 +429,6 @@ in the above code block.
 
 .. image:: ../data/t1.png
    :alt: t1.png
-
-   The domain constraint for ``x3``
 
 The above image depicts the domain constraint for ``x3``.
 The ``tup`` consists of the constraints for ``x1``, ``x2``, and ``x3``.

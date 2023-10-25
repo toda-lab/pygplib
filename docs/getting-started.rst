@@ -1,7 +1,7 @@
 Get Started
 ===========
 
-Install ``pygplib``
+Install Pygplib
 -------------------
 
 .. code:: shell-session
@@ -25,15 +25,15 @@ graph, ``G``, with ``pygplib``.
     # V4---V7   V6
 
 Import necessary modules,
-create a graph structure object of class ``GrSt`` with the graph ``G`` 
+create a graph structure object of class ``GrSt`` with ``G`` 
 , and set it to the first-order formula class ``Fog``.
 
 .. code:: python
 
     from pygplib import Fog, op, GrSt, Cnf, Prop
 
-    vertex_list = [1,2,3,4,5,6,7]
-    edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]
+    vertex_list = [1,2,3,4,5,6,7]                            # vertices of G
+    edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]  # edge of G
     Fog.st = GrSt(vertex_list, edge_list)
 
 Parse the expression of an independent set of size ``3`` 
@@ -68,9 +68,10 @@ Generate a CNF formula to file ``f.cnf`` in `DIMACS CNF format
     with open("f.cnf","w") as out:
         mgr.write(stream=out)
 
+
 To count the number of solutions, i.e., satisfying assignments
 for the encoded CNF formula (``f.cnf`` in the current directory), 
-obtain and build a model counter `sharpSAT <https://github.com/marcthurley/sharpSAT.git>`__ , 
+download and build a model counter `sharpSAT <https://github.com/marcthurley/sharpSAT.git>`__ , 
 a satisfiability tool to counter the number of satisfying assignments of a
 CNF in DIMACS CNF format.
 Run the following command.

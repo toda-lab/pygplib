@@ -12,10 +12,10 @@ Release v\ |version|
    :caption: Contents:
 
    getting-started
-   howto
+   pygplib
+   examples
    fog
    format
-   examples
 
 Indices and tables
 ==================

@@ -3,6 +3,9 @@
 Format of First-Order Formula
 =============================
 
+Fromat
+------
+
 The ``pygplib`` mostly supports the format of untyped first-order formulas in
 the `TPTP
 format <https://www.tptp.org/Seminars/TPTPWorldTutorial/LogicFOF.html>`__
