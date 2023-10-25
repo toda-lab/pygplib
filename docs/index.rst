@@ -11,7 +11,11 @@ Release v\ |version|
    :maxdepth: 2
    :caption: Contents:
 
-   HowToUsePygplib
+   getting-started
+   fog
+   howto
+   format
+   examples
 
 Indices and tables
 ==================

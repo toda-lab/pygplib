@@ -1,11 +1,10 @@
-==========================
 Using the pygplib module
 ==========================
 
 :author: Takahisa Toda
 :address: todat@acm.org
 
-:revision: 2.0.0
+:revision: |version|
 :date: Nov., 2023
 
 :copyright: Copyright |copy| 2023-2023 Takahisa Toda.
@@ -26,7 +25,7 @@ Using the pygplib module
 
 
 Parsing First-Order Formula
-===========================
+---------------------------
 
 The ``pygplib`` mostly supports the format of untyped first-order formulas in
 the `TPTP
@@ -87,7 +86,7 @@ Similarly, when ``Prop.bipartite_order`` is set ``True``,
 become syntactically different expressions.
 
 Name and Index of Symbol
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 As soon as a formula is parsed, all variable symbols as well as constant
 symbols appearing in the formula will be registered to NameManager class 
@@ -130,12 +129,12 @@ underscore.
    assert NameMgr.is_constant(w)
 
 Constructing First-Order Formula
-================================
+--------------------------------
 
 An arbitrary well-formed formula can be constructed with built-in operations.
 
 Basic Operations
-----------------
+^^^^^^^^^^^^^^^^
 
 .. code:: python
 
@@ -168,7 +167,7 @@ Basic Operations
    where ``x`` and ``y`` are the names of ``v`` and ``w``.
 
 Utility Functions and Advanced Operations
------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Some utility functions and advanced operations for formulas
 are listed below.
@@ -241,7 +240,7 @@ The above image depicts the data structure of a first-order formula. The
 whole formula consists of objects of ``Fog`` class with the root node ``f``.
 
 Creating Graph Structure
-========================
+------------------------
 
 In order to interpret first-order formula, it is necessary to create and
 set graph structure to ``Fog`` class in advance. A graph structure is an
@@ -326,7 +325,7 @@ corresponding bit ``01000``.
    Fog.st = GrSt(vertex_list, edge_list, encoding="direct", prefix="V")
 
 Note: Interpretation of Atoms
-=============================
+-----------------------------
 
 The following formulas are evaluated to true regardless of variables 
 ``x``, ``y``, and graph structures.
@@ -338,7 +337,9 @@ The following formulas are evaluated to true regardless of variables
 
 
 Encoding and Solving First-Order Formula
-========================================
+----------------------------------------
+
+.. _Encoding_FO_Formula:
 
 Let us now describe how first-order formulas can be encoded into CNFs with 
 ``pygplib`` and solved with ``pysat``, a toolkit for SAT-based prototyping 
@@ -429,7 +430,7 @@ in terms of the Boolean encoding part, i.e. the computation of
 ``g`` and ``tup``, and ``Cnf`` class. 
 
 Boolean Encoding
-----------------------
+^^^^^^^^^^^^^^^^
 
 We will describe why we consider not only ``g`` but also ``tup`` in the
 previous code block. Remember that a first-order variable runs over
@@ -455,7 +456,7 @@ In summary, the propositional formula encoded from ``fff`` amounts to the
 conjunction of ``g``, ``tup[0],`` ``tup[1]``, and ``tup[2]``.
 
 Cnf Class
---------------------------
+^^^^^^^^^
 
 In the initialization of ``Cnf`` object, the following method is executed, 
 which is the main part of the CNF computation.
@@ -519,86 +520,3 @@ DIMACS CNF variable ``2``, the second bit ``x1@2`` by ``4``, and so on.
 The CNF computation is done by Tseitin transformation. 
 There is a one-to-one correspondence between satisfying assignments 
 of (external/internal) CNF variables and those of first-order variables.
-
-Format of First-Order Formula
-=============================
-
-.. _Format of First-Order Formula:
-
-The ``pygplib`` mostly supports the format of untyped first-order formulas in
-the `TPTP
-format <https://www.tptp.org/Seminars/TPTPWorldTutorial/LogicFOF.html>`__
-for automated theorem proving.
-
-The following notation is useful shorthand.
-
--  ``e1 | e2 | e3 |`` … means a choice of ``e1``, ``e2``, ``e3``, etc.
--  ``( e )*`` means zero or more occurrences of ``e``.
--  ``["a"-"z"]`` matches any lowercase alphabet letter.
--  ``["A"-"Z"]`` matches any uppercase alphabet letter.
--  ``["0"-"9"]`` matches any digit from ``"0"`` to ``"9"``.
--  ``<word>`` means a non-terminal symbol.
-
-The name of a *variable symbol* is defined as follows.
-
-::
-
-       <var_symb>::= <alpha_lower> (<alpha_lower> | <digit> | "_")*
-       <alpha_lower>::= ["a"-"z"]
-       <digit>::= ["0"-"9"]
-
-The name of a *constant symbol* is defined as follows.
-
-::
-
-       <con_symb>::= <alpha_upper> (<alpha_upper> | <digit> | "_")*
-       <alpha_upper>::= ["A"-"Z"]
-       <digit>::= ["0"-"9"]
-
-An *atomic formula* is defined as follows.
-
-::
-
-       <atom>::= <edg_atom> | <eq_atom> | <con_atom>
-       <edg_atom>::= "edg" "(" <term> "," <term> ")"
-       <eq_atom>::=  <term> "=" <term>
-       <con_atom>::= "T" | "F"
-       <term>::= <var_symb> | <con_symb>
-
-A *first-order formula* is defined as follows.
-
-::
-
-       <expr>::= <atom> | "(" <unop> <expr> ")" | "(" <expr> <binop> <expr> ")" | "(" <qf> "[" <var> "]" ":" <expr> ")"
-       <unop>::= "~"
-       <binop>::= "&" | "|" | "->" | "<->"
-       <qf>::= "!" | "?"
-
-Parenthesis can be omitted as long as the interpretation is uniquely
-determined. The precedence of logical operators is determined as
-follows.
-
-::
-
-       "!"="?" > "~" > "&" > "|" > "->" > "<->"
-
-Operators of the same precedence are associated in such a way that
-binary operations are left-associative, unary operation and quantifiers
-are right-associative.
-
-Common Pitfalls
----------------
-
--  ``~ ! [x] : T`` means ``~ (! [x] : T)``.
--  ``! [x] : ~ T`` cannot be parsed: the parser attempts to interpret it
-   as ``(! [x] : ~) T``. Write ``! [x] : (~ T)`` instead.
--  ``V12x`` is unacceptable as constant symbol name
-    because uppercase and lowercase letters are mixed.
--  ``! [X] : T`` is unacceptable because X is interpreted as a constant
-   symbol.
--  ``! [x,y] x=y`` is not supported: write ``! [x] : ! [y] : x=y``, which is
-   equal to ``(! [x] : (! [y] : x = y))``.
--  ``! [x: vertex] x=x`` is unacceptable. typed variable is not supported.
--  ``x != x`` is not supported: write ``~ x = x`` instead.
--  ``! x = x`` is unacceptable: ``!`` is a universal quantifier.
--  ``edge(x=y)`` is unacceptable: Remove ``e`` from ``edge``.
