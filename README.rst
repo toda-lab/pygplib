@@ -29,17 +29,8 @@ Note: the current version remains in an experimental stage.
 Documentation
 =============
 
-Documentation
-=============
+For installation, quick example, tutorials, and so one, please see `online documentation <https://pygplib.readthedocs.io/en/latest/>`__ .
 
-See `pygplib’s documentation <https://pygplib.readthedocs.io/en/latest/>`__ .
-
-Bugs/Ruests
-===========
-
-History
-=======
-TBD
 
 Citation
 ========
@@ -50,10 +41,21 @@ Please cite the following paper if you use ``pygplib``:
 
    Takahisa Toda, Takehiro Ito, Jun Kawahara, Takehide Soh, Akira Suzuki, Junichi Teruyama, Solving Reconfiguration Problems of First-Order Expressible Properties of Graph Vertices with Boolean Satisfiability, The 35th IEEE International Conference on Tools with Artificial Intelligence (ICTAI 2023), accepted.
 
+Bugs/Ruests/Discussions
+===========
+
+Please report bugs and requests from `GitHub Issues
+<https://github.com/toda-lab/pygplib/issues>`__ , and 
+ask questions from `GitHub Discussions <https://github.com/toda-lab/pygplib/discussions>`__ .
+
+History
+=======
+Please see `CHANGES <https://github.com/toda-lab/pygplib/blob/main/CHANGES>`__ .
+
 License
 =======
 
-MIT License. See `LICENSE <https://github.com/toda-lab/pygplib/blob/main/LICENSE>`__ .
+Please see `LICENSE <https://github.com/toda-lab/pygplib/blob/main/LICENSE>`__ .
 
 .. |Test| image:: https://github.com/toda-lab/pygplib/actions/workflows/test.yml/badge.svg
    :target: https://github.com/toda-lab/pygplib/actions/workflows/test.yml
