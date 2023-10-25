@@ -16,6 +16,7 @@ Release v\ |version|
    examples
    fog
    format
+   modules
 
 Indices and tables
 ==================
