@@ -451,6 +451,21 @@ files = [
 ]
 
 [[package]]
+name = "pallets-sphinx-themes"
+version = "2.1.1"
+description = "Sphinx themes for Pallets and related projects."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "Pallets-Sphinx-Themes-2.1.1.tar.gz", hash = "sha256:e5da65967bb6fae3055682a97d37c3311fe38e132c0761052c16aaacafc8d47f"},
+    {file = "Pallets_Sphinx_Themes-2.1.1-py3-none-any.whl", hash = "sha256:b690b0b89aad3dc3f02afa546cf3fa56c29406012bb2e29158a69b774c4d4a98"},
+]
+
+[package.dependencies]
+packaging = "*"
+Sphinx = ">=3"
+
+[[package]]
 name = "platformdirs"
 version = "3.11.0"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
@@ -765,23 +780,18 @@ lint = ["docutils-stubs", "flake8 (>=3.5.0)", "flake8-simplify", "isort", "mypy 
 test = ["cython (>=3.0)", "filelock", "html5lib", "pytest (>=4.6)", "setuptools (>=67.0)"]
 
 [[package]]
-name = "sphinx-rtd-theme"
-version = "1.3.0"
-description = "Read the Docs theme for Sphinx"
+name = "sphinx-removed-in"
+version = "0.2.1"
+description = "versionremoved and removed-in directives for Sphinx"
 optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,>=2.7"
+python-versions = "*"
 files = [
-    {file = "sphinx_rtd_theme-1.3.0-py2.py3-none-any.whl", hash = "sha256:46ddef89cc2416a81ecfbeaceab1881948c014b1b6e4450b815311a89fb977b0"},
-    {file = "sphinx_rtd_theme-1.3.0.tar.gz", hash = "sha256:590b030c7abb9cf038ec053b95e5380b5c70d61591eb0b552063fbe7c41f0931"},
+    {file = "sphinx-removed-in-0.2.1.tar.gz", hash = "sha256:0588239cb534cd97b1d3900d0444311c119e45296a9f73f1ea81ea81a2cd3db1"},
+    {file = "sphinx_removed_in-0.2.1-py3-none-any.whl", hash = "sha256:434b1a1c28b12021de4c84fc2fbb7168fdf1f56a410a42bf8d0af938d0855ad1"},
 ]
 
 [package.dependencies]
-docutils = "<0.19"
-sphinx = ">=1.6,<8"
-sphinxcontrib-jquery = ">=4,<5"
-
-[package.extras]
-dev = ["bump2version", "sphinxcontrib-httpdomain", "transifex-client", "wheel"]
+Sphinx = "*"
 
 [[package]]
 name = "sphinxcontrib-applehelp"
@@ -838,20 +848,6 @@ lint = ["docutils-stubs", "flake8", "mypy"]
 test = ["html5lib", "pytest"]
 
 [[package]]
-name = "sphinxcontrib-jquery"
-version = "4.1"
-description = "Extension to include jQuery on newer Sphinx releases"
-optional = false
-python-versions = ">=2.7"
-files = [
-    {file = "sphinxcontrib-jquery-4.1.tar.gz", hash = "sha256:1620739f04e36a2c779f1a131a2dfd49b2fd07351bf1968ced074365933abc7a"},
-    {file = "sphinxcontrib_jquery-4.1-py2.py3-none-any.whl", hash = "sha256:f936030d7d0147dd026a4f2b5a57343d233f1fc7b363f68b3d4f1cb0993878ae"},
-]
-
-[package.dependencies]
-Sphinx = ">=1.8"
-
-[[package]]
 name = "sphinxcontrib-jsmath"
 version = "1.0.1"
 description = "A sphinx extension which renders display math in HTML via JavaScript"
@@ -900,6 +896,20 @@ Sphinx = ">=5"
 [package.extras]
 lint = ["docutils-stubs", "flake8", "mypy"]
 test = ["pytest"]
+
+[[package]]
+name = "sphinxcontrib-trio"
+version = "1.1.2"
+description = "Make Sphinx better at documenting Python functions and methods"
+optional = false
+python-versions = "*"
+files = [
+    {file = "sphinxcontrib-trio-1.1.2.tar.gz", hash = "sha256:9f1ba9c1d5965b534e85258d8b677dd94e9b1a9a2e918b85ccd42590596b47c0"},
+    {file = "sphinxcontrib_trio-1.1.2-py3-none-any.whl", hash = "sha256:1b849be08a147ef4113e35c191a51c5792613a9a54697b497cd91656d906a232"},
+]
+
+[package.dependencies]
+sphinx = ">=1.7"
 
 [[package]]
 name = "tomli"
@@ -994,4 +1004,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "62af1457557d95dbd4818f9a19655bae5652c49e7ac571b0a7820184df9418c0"
+content-hash = "f9df6c4f7b98286c8888afe8e6a4e68937f02479c960a1ae73924abb2ebd8d47"
