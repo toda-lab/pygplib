@@ -12,7 +12,7 @@ Release v\ |version|
    :caption: Contents:
 
    getting-started
-   pygplib
+   howto-use-pygplib
    examples
    fog
    format

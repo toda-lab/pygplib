@@ -3,7 +3,7 @@
 Format of First-Order Formula
 =============================
 
-Fromat
+Format
 ------
 
 The ``pygplib`` mostly supports the format of untyped first-order formulas in
