@@ -6,7 +6,7 @@ for constructing, manipulating, and encoding graph properties expressible
 with first-order logic of graphs. We mean by graphs graphs 
 with no directed edge, no multiple edge, no isolated edge, 
 at most one isolated vertex, and no loop.
-See, for first-order logic of graphs, :ref:`First-Order Logic of Graphs`.
+See, for first-order logic of graphs, :ref:`FirstOrderLogicofGraphs`.
 
 Parsing First-Order Formula
 ---------------------------
@@ -15,7 +15,7 @@ The ``pygplib`` mostly supports the format of untyped first-order formulas in
 the `TPTP
 format <https://www.tptp.org/Seminars/TPTPWorldTutorial/LogicFOF.html>`__
 for automated theorem proving.
-The format is detailed in :ref:`Format of First-Order Formula`.
+The format is detailed in :ref:`FormatofFirstOrderFormula`.
 A first-order formula given in string can be parsed and constructed as 
 a first-order formula object by ``Fog.read()``.
 
@@ -319,7 +319,7 @@ The following formulas are evaluated to true regardless of variables
 - ``x = x``
 - ``x = y <-> y = x``
 
-.. _Encoding First-Order Formula:
+.. _EncodingFirstOrderFormula:
 
 Encoding First-Order Formula
 ----------------------------
@@ -420,7 +420,7 @@ An easy way to compute satisfying assignments for encoded formulas is to use
 ``pysat``, `a toolkit for SAT-based prototyping in Python <https://pysathq.github.io/>`__ .
 The ``pygplib`` in itself does not provide any functionality of 
 solving encoded formulas, and is independent of ``pysat`` module.
-Please see :ref:`Example of Usage` for various examples of usage.
+Please see :ref:`ExampleofUsage` for various examples of usage.
 
 In the following code block, the CNF manager ``mgr`` generates a CNF in 
 DIMACS CNF format, which provides an alternative way to solve encoded

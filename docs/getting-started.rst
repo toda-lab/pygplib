@@ -39,7 +39,7 @@ create a graph structure object of class ``GrSt`` with ``G``
 Parse the expression of an independent set of size ``3`` 
 and construct a first-order formula object, ``f``,
 See, for first-order logic of graphs,
-:ref:`First-Order Logic of Graphs` and, for formula format, :ref:`Format of First-Order Formula`.
+:ref:`FirstOrderLogicofGraphs` and, for formula format, :ref:`FormatofFirstOrderFormula`.
 
 .. code:: python
 
@@ -51,7 +51,7 @@ and the Cnf object created is a manager for the CNF encoded from given propositi
 It is initialized with a tuple of propositional formulas, ``(g, ) +
 tup``, considering it as the conjunction of these formulas.
 The encoding performed here is described in more details in
-:ref:`Encoding First-Order Formula`.
+:ref:`EncodingFirstOrderFormula`.
 
 .. code:: python
 

@@ -1,4 +1,4 @@
-.. _First Order Logic of Graphs:
+.. _FirstOrderLogicofGraphs:
 
 First-Order Logic of Graphs
 ===========================

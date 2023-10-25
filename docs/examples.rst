@@ -1,4 +1,4 @@
-.. _Example of Usage:
+.. _ExampleofUsage:
 
 Examples of Usage
 =================

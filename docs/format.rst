@@ -1,4 +1,4 @@
-.. _Format of First-Order Formula:
+.. _FormatofFirstOrderFormula:
 
 Format of First-Order Formula
 =============================
