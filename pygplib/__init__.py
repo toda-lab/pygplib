@@ -22,5 +22,4 @@ __all__ = [
     "NameMgr",
     "op",
     "Ecc",
-    "__version__",
 ]
