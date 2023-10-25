@@ -2,7 +2,7 @@
 name = "pygplib"
 version = "2.0.0"
 description = "Python First-Order Graph Property Library"
-authors = ["Takahisa Toda <todat@acm.org>"]
+authors = ["Takahisa Toda <pygplib+contact@gmail.com>"]
 license = "MIT"
 readme = "README.rst"
 repository = "https://github.com/toda-lab/pygplib"

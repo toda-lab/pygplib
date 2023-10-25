@@ -33,7 +33,7 @@ create a graph structure object of class ``GrSt`` with ``G``
     from pygplib import Fog, op, GrSt, Cnf, Prop
 
     vertex_list = [1,2,3,4,5,6,7]                            # vertices of G
-    edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]  # edge of G
+    edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]  # edges of G
     Fog.st = GrSt(vertex_list, edge_list)
 
 Parse the expression of an independent set of size ``3`` 
@@ -43,7 +43,8 @@ See, for first-order logic of graphs,
 
 .. code:: python
 
-    f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) & (~ x1=x2) & (~ x1=x3) & (~ x2=x3)")
+    f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) "\
+                +"& (~ x1=x2) & (~ x1=x3) & (~ x2=x3)")
 
 Create a Cnf object, ``mgr``, from the first-order formula ``f`` via Boolean-encoding.
 A *Conjunctive Normal Form* Formula (*CNF* for short) is a well-accepted canonical form of propositional formulas, 

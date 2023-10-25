@@ -20,14 +20,14 @@ Basic steps to follow are :
   a canonical normal form for propositional formulas.
 - Apply satisfiability tools to the CNF to compute satisfying
   assignments.
-- Decode the result into the assignment to first-order variables.
+- Decode the result into an assignment of first-order variables.
 
 Note: the current version remains in an experimental stage.
 
 Documentation
 =============
 
-For installation, quick example, tutorials, and so one, please see `online documentation <https://pygplib.readthedocs.io/en/latest/>`__ .
+For installation, examples, tutorials, and so one, please see `online documentation <https://pygplib.readthedocs.io/en/latest/>`__ .
 
 
 Citation
@@ -39,8 +39,8 @@ Please cite the following paper if you use ``pygplib``:
 
    Takahisa Toda, Takehiro Ito, Jun Kawahara, Takehide Soh, Akira Suzuki, Junichi Teruyama, Solving Reconfiguration Problems of First-Order Expressible Properties of Graph Vertices with Boolean Satisfiability, The 35th IEEE International Conference on Tools with Artificial Intelligence (ICTAI 2023), accepted.
 
-Bugs/Ruests/Discussions
-===========
+Bugs/Requests/Discussions
+=========================
 
 Please report bugs and requests from `GitHub Issues
 <https://github.com/toda-lab/pygplib/issues>`__ , and 
