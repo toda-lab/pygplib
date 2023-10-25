@@ -234,7 +234,7 @@ A formula can be printed out in DOT format, allowing us to visualize.
 
    $ dot -Tpng f.dot -o f.png
 
-.. image:: https://github.com/toda-lab/pygplib/blob/main/data/f.png
+.. image:: ../data/f.png
    :alt: f.png
 
 The above image depicts the data structure of a first-order formula. The
