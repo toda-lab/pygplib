@@ -6,7 +6,7 @@ for constructing, manipulating, and encoding graph properties expressible
 with first-order logic of graphs. We mean by graphs graphs 
 with no directed edge, no multiple edge, no isolated edge, 
 at most one isolated vertex, and no loop.
-See, for first-order logic of graphs, :ref:`First-OrderLogicGraphs`.
+See, for first-order logic of graphs, :ref:`First-Order Logic of Graphs`.
 
 Parsing First-Order Formula
 ---------------------------
@@ -319,22 +319,18 @@ The following formulas are evaluated to true regardless of variables
 - ``x = x``
 - ``x = y <-> y = x``
 
-.. _EncodingFOFormula:
+.. _Encoding First-Order Formula:
 
-Encoding and Solving First-Order Formula
-----------------------------------------
+Encoding First-Order Formula
+----------------------------
 
 Let us now describe how first-order formulas can be encoded into CNFs with 
-``pygplib`` and solved with ``pysat``, a toolkit for SAT-based prototyping 
-in Python, or any other solver that conforms to the DIMACS CNF requirements.
+``pygplib``.
 
-In the following code block, a graph structure with a list of vertices 
-``vertex_list`` and a list of edges ``edge_list`` is created and set to ``Fog``.
-The first-order formula of an independent set of size ``3``, written as the conjunction of
-``(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3))`` and 
-``(~ x1=x2) & (~ x1=x3) & (~ x2=x3)``, is converted into a tuple
-of objects of propositional formula class ``Prop`` ``(g, ) + tup``, 
-with which ``Cnf`` object ``mgr`` is created.
+In the following code block, a graph structure is created and set to ``Fog``.
+A first-order formula is parsed and constructed.
+It is then converted to a tuple of propositional formulas 
+``Prop`` ``(g, ) + tup``,  with which ``Cnf`` object ``mgr`` is created.
 
 .. code:: python
 
@@ -343,74 +339,18 @@ with which ``Cnf`` object ``mgr`` is created.
     vertex_list = [1,2,3,4,5]
     edge_list = [(1,2),(1,3),(2,3),(3,4),(3,5),(4,5)]
     Fog.st = GrSt(vertex_list, edge_list, encoding="edge", prefix="V")
-    f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3))")
-    ff = Fog.read("(~ x1=x2) & (~ x1=x3) & (~ x2=x3)")
-    fff = Fog.land(f,ff)
-    g = op.propnize(fff)
 
+    f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3))")
+
+    g = op.propnize(f)
     tup  = tuple([Fog.st.compute_domain_constraint(v) \
-                    for v in op.get_free_vars(fff)])
-    with open("t1.dot","w") as out:
-        op.print_formula(tup[0],stream=out,fmt="dot")
+                    for v in op.get_free_vars(f)])
 
     mgr = Cnf( (g, ) + tup )
 
-In the following code block, which continues the above code block, 
-``pysat`` module is imported in order to compute a 
-satisfying assignment with a SAT solver.
-The ``pygplib`` in itself does not provide any functionality of 
-solving encoded formulas, and is independent of ``pysat`` module.
-Please see `the instruction page <https://pysathq.github.io/installation/>`__ 
-for the installation of ``pysat``.
-
-.. code:: python
-
-    from pysat.formula import CNF
-    from pysat.solvers import Solver
-
-    cnf = CNF(from_clauses=[mgr.get_clause(i) for i in range(mgr.get_ncls())])
-    with Solver(bootstrap_with=cnf) as solver:
-        if solver.solve():
-            print("SATISFIABLE")
-            ext_assign = solver.get_model() # external CNF vars.
-            int_assign = mgr.decode_assignment(ext_assign) # internal CNF vars.
-            fo_assign = Fog.st.decode_assignment(int_assign) # first-order vars.
-            ans = [Fog.st.object_to_vertex(fo_assign[key]) \
-                                    for key in fo_assign.keys()]
-            print(ans) # list of vertices
-        else:
-            print("UNSATISFIABLE")
-
-The output must be UNSATISFIABLE as the current graph has no independent set of size ``3``.
-
-.. code:: python
-
-    # V1 --- V2
-    #  \    /
-    #   \  /
-    #    V3
-    #   / \
-    #  /   \
-    # V4---V5
-
-Recomputing the same formula but for the following graph, we will in turn obtain an
-independent set, say ``[7, 6, 1]``.
-
-.. code:: python
-
-    # V1 ------- V3
-    # |          |
-    # |          |
-    # V2---V5    |
-    # |    |     |
-    # |    |     |
-    # V4---V7   V6
-    vertex_list = [1,2,3,4,5,6,7]
-    edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]
-
 We will describe these code blocks in more details in the following sections
-in terms of the Boolean encoding part, i.e. the computation of
-``g`` and ``tup``, and ``Cnf`` class. 
+in terms of the Boolean encoding part (the computation of
+``g`` and ``tup``) and ``Cnf`` class. 
 
 Boolean Encoding
 ^^^^^^^^^^^^^^^^
@@ -423,6 +363,13 @@ constraints*) on first-order variables, we added ``tup``, a tuple of
 propositional formulas of ``Prop`` class, one for each first-order variable, 
 in the above code block.
 
+Let us visualize a domain constraint for a better understanding.
+
+.. code:: python
+
+    with open("t1.dot","w") as out:
+        op.print_formula(tup[0],stream=out,fmt="dot")
+
 .. code:: shell-session
 
    $ dot -Tpng t1.dot -o t1.png
@@ -432,15 +379,15 @@ in the above code block.
 
 The above image depicts the domain constraint for ``x3``, where ``x3@1``,
 ``x3@2``, ``x3@3``, ``x3@4`` represents a sequence of propositional variables 
-representing the binary code of ``x``.
-The ``tup`` consists of the constraints for ``x1``, ``x2``, and ``x3``.
-The ``g`` represents the propositional formula for ``f`` except the
-domain constraint.
+representing the binary code of ``x3``.
+The ``tup`` consists of the constraints for ``x1``, ``x2``, and ``x3``, while
+``g`` represents the propositional formula for ``f`` except the
+domain constraints.
 
 .. image:: ../data/g.png
    :alt: g.png
 
-In summary, the propositional formula encoded from ``fff`` amounts to the
+In summary, the propositional formula encoded from ``f`` amounts to the
 conjunction of ``g``, ``tup[0],`` ``tup[1]``, and ``tup[2]``.
 
 Cnf Class
@@ -470,6 +417,12 @@ A ``Cnf`` object provides the following instance methods.
   variables (external CNF variables), ``assign``, 
   to the assignment of internal CNF variables except auxiliary ones.
 
+An easy way to compute satisfying assignments for encoded formulas is to use 
+``pysat``, `a toolkit for SAT-based prototyping in Python <https://pysathq.github.io/>`__ .
+The ``pygplib`` in itself does not provide any functionality of 
+solving encoded formulas, and is independent of ``pysat`` module.
+Please see :ref:`Example of Usage` for various examples of usage.
+
 In the following code block, the CNF manager ``mgr`` generates a CNF in 
 DIMACS CNF format, which provides an alternative way to solve encoded
 formulas with external solvers, say `kissat
@@ -478,7 +431,7 @@ formulas with external solvers, say `kissat
 
 .. code:: python
 
-    with open("fff.cnf","w") as out:
+    with open("f.cnf","w") as out:
         mgr.write(stream=out)
 
 To decode a satisfying assignment, the header of the generated DIMACS CNF might
@@ -486,7 +439,7 @@ be useful.
 
 .. code:: shell-session
 
-    $ cat fff.cnf
+    $ cat f.cnf
     (The first part omitted)
     c enc 2 x1@1
     c enc 4 x2@1
