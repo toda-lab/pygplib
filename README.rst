@@ -46,7 +46,7 @@ ask questions from `GitHub Discussions <https://github.com/toda-lab/pygplib/disc
 
 History
 =======
-Please see `CHANGES <https://github.com/toda-lab/pygplib/blob/main/CHANGES>`__ .
+Please see `CHANGES <https://github.com/toda-lab/pygplib/blob/main/CHANGES.rst>`__ .
 
 License
 =======
