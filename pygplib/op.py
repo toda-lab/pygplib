@@ -120,6 +120,12 @@ def print_formula(f: AbsExpr, stream=None, graph_name="output", fmt="str") -> No
                 out += f"\t{id(g)}" + " -> " + f"{id(g.get_operand(2))}\n"
             elif g.is_unop_term():
                 out += f"\t{id(g)}" + " -> " + f"{id(g.get_operand(1))}\n"
+            elif g.is_atom_term():
+                continue
+            elif isinstance(g, AbsFo) and g.is_qf_term():
+                out += f"\t{id(g)}" + " -> " + f"{id(g.get_operand(1))}\n"
+            else:
+                raise Exception(f"unexpected term: {g.gen_key()}")
 
     if stream != None:
         out += "}\n"

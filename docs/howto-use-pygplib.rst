@@ -128,7 +128,7 @@ Basic Operations
    assert op.to_str(f) == "edg(x, y)"
 
    g = Fog.neg(Fog.eq(v,w))
-   assert op.to_str(f) == "(~ x = y)"
+   assert op.to_str(g) == "(~ x = y)"
 
    h = Fog.implies(f,g)
    assert op.to_str(h) == "(edg(x, y) -> (~ x = y))"
@@ -200,8 +200,8 @@ in the following code block.
    for v in op.get_free_vars(f):
        f = Fog.forall(f,v)
 
-    assert op.to_str(f) == "(! [y] : (! [x] : (edg(x, y) -> (~ x = y))))"
-    assert f != Fog.true_const() 
+   assert op.to_str(f) == "(! [y] : (! [x] : (edg(x, y) -> (~ x = y))))"
+   assert f != Fog.true_const() 
 
 A formula can be printed out in DOT format, allowing us to visualize.
 
@@ -246,7 +246,8 @@ a binary code (a row vector) of the matrix, which is a vertex-edge
 incidence matrix.
 
 .. code:: python
-
+   from pygplib from GrSt
+   from pygplib from NameMgr
    # V1 --- V2
    #  \    /
    #   \  /
