@@ -9,17 +9,17 @@ Version 2.0.1 - 2023-10-29
 Added
 ^^^^^
 
-- ``BUILDING.rst``, ``CODE_OF_CONDUCT.md``.
-- ``pyproject.toml`` to build and package project with poetry.
-- ``tox.ini`` and ``.github/*`` for continuous integration.
-- rst files and ``requirements.txt`` in ``docs/`` and ``.readthedocs.yaml`` for tutorial documentation in Read the Docs.
+- Added ``BUILDING.rst`` and ``CODE_OF_CONDUCT.md``.
+- Added ``pyproject.toml`` to build and package project with poetry.
+- Aded ``tox.ini`` and ``.github/*`` for continuous integration.
+- Added rst files and ``requirements.txt`` in ``docs/`` and ``.readthedocs.yaml`` for tutorial documentation in Read the Docs.
 - Added ``pygplib/ecc.py`` for insourcing of the edge-clique-cover computation.
-- implemented direct-encoding for domain of discource.
+- Implemented direct-encoding for domain of discource.
 
 Removed
 ^^^^^^^
 
-- ``tools/``, ``tests/test_solver.py``, ``pygplib/util.py`` and ``tests/test_util.py`` to remove depedencies to third-party tools.
+- Removed ``tools/``, ``tests/test_solver.py``, ``pygplib/util.py`` and ``tests/test_util.py`` to remove depedencies to third-party tools.
 
 Changed
 ^^^^^^^
@@ -31,7 +31,9 @@ Changed
 
  - ``GrSt`` object is initialized with a vertex-list and a edge-list, and the ECC computation is performed in the initialization.
  - the interpretation of relation symbols ``=`` and ``edg`` as well as ``compute_domain_constraint()`` are included in ``pygplib/gsrt.py``, making ``Fog`` class and ``op.py`` indepedent of domain encoding.
- - the format of first-order formulas (negation, existential and universal quantifiers) to make it compartible with TPTP format.
- - Renamed ``decode_assign()`` of ``pygplib/cnf.py`` to ``decode_assignment()`` and changed an output assignment so that auxiliary variables are ignored.
- - Removed field ``st`` in formula class and changed to give relational structure as argument of each method that requires it. 
- - Changed API of ``compute_domain_constraint()`` so that the input is an index of a free variable and the output is a Prop formula object.
+
+- Changed the format of first-order formulas (negation, existential and universal quantifiers) to make it compartible with TPTP format.
+- Renamed ``decode_assign()`` of ``pygplib/cnf.py`` to ``decode_assignment()`` and changed an output assignment so that auxiliary variables are ignored.
+- Renamed ``get_interpretation_of_assign()`` of ``GrSt`` to ``decode_assignment()`` and changed an output assignment so that first-order variables' indices are associated with constant symbol indices. 
+- Removed field ``st`` in formula class and changed to give relational structure as argument of each method that requires it. 
+- Changed API of ``compute_domain_constraint()`` so that the input is an index of a free variable and the output is a Prop formula object.
