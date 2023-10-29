@@ -165,8 +165,8 @@ ini_expr = Fog.read(convert_ini_str(phi[2], name_list))
 fin_expr = Fog.read(convert_fin_str(phi[3], name_list))
 trans_type = "None" if phi[1] != "" else "TJ"
 
-Fog.st = GrSt(vertex_list, edge_list, encoding=encoding_type)
-bmc = Bmc(state_expr, trans_expr, ini_expr, fin_expr, trans_type=trans_type)
+st = GrSt(vertex_list, edge_list, encoding=encoding_type)
+bmc = Bmc(state_expr, trans_expr, ini_expr, fin_expr, st, trans_type=trans_type)
 
 solve_time = 0
 compile_time = 0
@@ -192,8 +192,8 @@ for step in range(0, max_bound):
     print("c SATISFIABLE")
     ans = []
     for assign in bmc.decode(model):
-        res = Fog.st.decode_assignment(assign)
-        state = [Fog.st.object_to_vertex(res[key]) for key in res.keys()]
+        res = st.decode_assignment(assign)
+        state = [st.object_to_vertex(res[key]) for key in res.keys()]
         ans.append(state)
         print("a " + " ".join(map(str, state)))
     break

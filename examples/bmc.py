@@ -7,6 +7,7 @@ from functools import reduce
 
 from pygplib import NameMgr, Fog
 from pygplib import op
+from pygplib import GrSt
 
 
 class TplCnfParam:
@@ -111,6 +112,7 @@ class Bmc:
         trans_expr: Fog,
         ini_expr: Fog,
         fin_expr: Fog,
+        st: GrSt,
         prefix: str = "nx_",
         trans_type: str = "None",
     ):
@@ -127,7 +129,7 @@ class Bmc:
                 Set either TJ (token jumping) or TS (token sliding)
                 to trans_type (and set None to trans_expr).
         """
-        if Fog.st is None:
+        if st is None:
             raise Exception("Set graph structure of Fog class")
         if state_expr is None:
             raise Exception("Set state expression")
@@ -146,7 +148,10 @@ class Bmc:
         type(self)._check_variable_names_in_expr(state_expr, \
             trans_expr, prefix)
         type(self)._check_variable_names_in_ini_fin_expr(self._curr_vars, \
-            ini_expr, fin_expr)
+            ini_expr, fin_expr, st)
+
+        self.st = st
+        """graph structure"""
 
         # Determine correspondence of variables in current state and next state
         nvars = []  # variables in next state
@@ -176,23 +181,23 @@ class Bmc:
             else:
                 raise Exception(f"trans_type={trans_type} is undefined")
 
-        self._prop_ini = op.propnize(ini_expr)
+        self._prop_ini = op.propnize(ini_expr, self.st)
         """propositional formula of initial state"""
-        self._prop_fin = op.propnize(fin_expr)
+        self._prop_fin = op.propnize(fin_expr, self.st)
         """propositional formula of final state"""
-        self._prop_state = op.propnize(state_expr)
+        self._prop_state = op.propnize(state_expr, self.st)
         """propositional formula of each state"""
-        self._prop_trans = op.propnize(trans_expr)
+        self._prop_trans = op.propnize(trans_expr, self.st)
         """propositional formula of transition relations of adjacent states"""
 
-        self._state_size = self._nof_free_vars * Fog.st.code_length
+        self._state_size = self._nof_free_vars * st.code_length
         """number of cnf variables in each state"""
 
         # Template CNF for state property is computed in advance.
         # CNF of each state will be instantiated
         # by changing variable indices of this template.
         expr_tup = (self._prop_state,) \
-            + tuple([Fog.st.compute_domain_constraint(v) \
+            + tuple([st.compute_domain_constraint(v) \
                         for v in op.get_free_vars(state_expr)])
         base, naux, template_cnf = op.compute_cnf(expr_tup)
         # NOTE: the parameters, target_base and target_total, are not yet set,
@@ -278,13 +283,13 @@ class Bmc:
             raise ValueError("bound must be larger than or equal to 0")
 
         type(self)._check_variable_names_in_ini_fin_expr(
-            self._curr_vars, ini_expr, fin_expr
+            self._curr_vars, ini_expr, fin_expr, self.st
         )
         if ini_expr is not None:
-            self._prop_ini = op.propnize(ini_expr)
+            self._prop_ini = op.propnize(ini_expr, self.st)
 
         if fin_expr is not None:
-            self._prop_fin = op.propnize(fin_expr)
+            self._prop_fin = op.propnize(fin_expr, self.st)
 
         self._total_state_size = self._state_size * (bound + 1)
         self.nvar = self._total_state_size
@@ -391,12 +396,12 @@ class Bmc:
             return new_var if lit > 0 else -new_var
 
         else:
-            symbol_index = Fog.st.get_symbol_index(var)
+            symbol_index = self.st.get_symbol_index(var)
             assert symbol_index in self._varloc
 
             new_var = (
-                self._varloc[symbol_index] * Fog.st.code_length
-                + Fog.st.get_code_pos(var)
+                self._varloc[symbol_index] * self.st.code_length
+                + self.st.get_code_pos(var)
                 + 1
             )
             assert new_var <= self._state_size
@@ -433,7 +438,7 @@ class Bmc:
             return new_var if lit > 0 else -new_var
 
         else:
-            symbol_index = Fog.st.get_symbol_index(var)
+            symbol_index = self.st.get_symbol_index(var)
             assert symbol_index in self._varloc
 
             if self._curr_vars[self._varloc[symbol_index]] == symbol_index:
@@ -442,8 +447,8 @@ class Bmc:
                 assert symbol_index in self._next_vars
                 prev_symbol_index = self._curr_vars[self._varloc[symbol_index]]
 
-                pos = Fog.st.get_code_pos(var)
-                prev_prop_var = Fog.st.get_boolean_var(prev_symbol_index, pos)
+                pos = self.st.get_code_pos(var)
+                prev_prop_var = self.st.get_boolean_var(prev_symbol_index, pos)
 
                 new_var = self._encode_state_func(
                     prev_prop_var, time + 1, self._state_param
@@ -491,7 +496,7 @@ class Bmc:
         if cnf_var > self._total_state_size:
             raise ValueError("Cannot decode cnf literal of aux variable")
 
-        var_pos = int(((cnf_var - 1) % self._state_size) / Fog.st.code_length)
+        var_pos = int(((cnf_var - 1) % self._state_size) / self.st.code_length)
         assert 0 <= var_pos < self._nof_free_vars
 
         return self._curr_vars[var_pos]
@@ -502,8 +507,8 @@ class Bmc:
         if cnf_var > self._total_state_size:
             raise ValueError("Cannot decode cnf literal of aux variable")
 
-        code_pos = ((cnf_var - 1) % self._state_size) % Fog.st.code_length
-        assert 0 <= code_pos < Fog.st.code_length
+        code_pos = ((cnf_var - 1) % self._state_size) % self.st.code_length
+        assert 0 <= code_pos < self.st.code_length
         return code_pos
 
     def decode(self, assign: tuple) -> tuple:
@@ -532,7 +537,7 @@ class Bmc:
             time = self._decode_time(lit)
             symbol_index = self._decode_symbol_index(lit)
             pos = self._decode_code_pos(lit)
-            new_var = Fog.st.get_boolean_var(symbol_index, pos)
+            new_var = self.st.get_boolean_var(symbol_index, pos)
             if time not in res:
                 res[time] = []
             res[time].append(new_var if lit > 0 else -new_var)
@@ -573,7 +578,7 @@ class Bmc:
     # Check variable names in init state and final state expressions
     @staticmethod
     def _check_variable_names_in_ini_fin_expr(
-        state_vars: tuple[int], ini_expr: Fog, fin_expr: Fog
+        state_vars: tuple[int], ini_expr: Fog, fin_expr: Fog, st: GrSt
     ):
         """Checks variable names."""
         state_var_names = [NameMgr.lookup_name(i) for i in state_vars]
@@ -597,7 +602,7 @@ class Bmc:
                     )
 
             for name in ini_con_names:
-                if NameMgr.lookup_index(name) not in Fog.st.domain:
+                if NameMgr.lookup_index(name) not in st.domain:
                     raise Exception(
                         f"Cannot intepret constant {name} " + "as domain element"
                     )
@@ -622,7 +627,7 @@ class Bmc:
                     )
 
             for name in fin_con_names:
-                if NameMgr.lookup_index(name) not in Fog.st.domain:
+                if NameMgr.lookup_index(name) not in st.domain:
                     raise Exception(
                         f"Cannot intepret constant {name} " + "as domain element"
                     )

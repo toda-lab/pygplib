@@ -11,7 +11,7 @@ from .absexpr import AbsExpr
 from .prop    import Prop
 from .absfo   import AbsFo
 from .name    import NameMgr
-from .grst    import GrSt
+from .baserelst import BaseRelSt
 
 class Fog(AbsFo):
     """Expression of First-order logic of graphs
@@ -182,7 +182,7 @@ class Fog(AbsFo):
 
         super().get_free_vars_and_consts_pre_step(bound_vars, free_vars)
 
-    def reduce_step(self, assoc: dict) -> None:
+    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computatoin for this object."""
 
         if self.is_edg_atom():
@@ -191,8 +191,8 @@ class Fog(AbsFo):
                 assoc[id(self)] = type(self).false_const()
                 return
             if NameMgr.is_constant(op[0]) and NameMgr.is_constant(op[1]):
-                if type(self).st != None:
-                    if type(self).st.adjacent(op[0], op[1]):
+                if st != None:
+                    if st.adjacent(op[0], op[1]):
                         assoc[id(self)] = type(self).true_const()
                     else:
                         assoc[id(self)] = type(self).false_const()
@@ -206,8 +206,8 @@ class Fog(AbsFo):
                 assoc[id(self)] = type(self).true_const()
                 return
             if NameMgr.is_constant(op[0]) and NameMgr.is_constant(op[1]):
-                if type(self).st != None:
-                    if type(self).st.equal(op[0],op[1]):
+                if st != None:
+                    if st.equal(op[0],op[1]):
                         assoc[id(self)] = type(self).true_const()
                     else:
                         assoc[id(self)] = type(self).false_const()
@@ -215,25 +215,25 @@ class Fog(AbsFo):
             assoc[id(self)] = self
             return
 
-        super().reduce_step(assoc)
+        super().reduce_step(assoc, st)
 
-    def propnize_step(self, assoc: dict) -> None:
+    def propnize_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs propositionalization for this object."""
 
         if self.is_edg_atom():
             atom = [self.get_atom_value(1), self.get_atom_value(2)]
             if atom[0] == atom[1]:
-                assoc[id(self)] = type(self).st.encode_F()
+                assoc[id(self)] = st.encode_F()
             else:
-                assoc[id(self)] = type(self).st.encode_edg(atom[0],atom[1])
+                assoc[id(self)] = st.encode_edg(atom[0],atom[1])
             return
 
         if self.is_eq_atom():
             atom = [self.get_atom_value(1), self.get_atom_value(2)]
             if atom[0] == atom[1]: 
-                assoc[id(self)] = type(self).st.encode_T()
+                assoc[id(self)] = st.encode_T()
             else:
-                assoc[id(self)] = type(self).st.encode_eq(atom[0],atom[1])
+                assoc[id(self)] = st.encode_eq(atom[0],atom[1])
             return
 
         if (\
@@ -253,11 +253,11 @@ class Fog(AbsFo):
             return
 
         if self.is_true_atom():
-            assoc[id(self)] = type(self).st.encode_T()
+            assoc[id(self)] = st.encode_T()
             return
 
         if self.is_false_atom():
-            assoc[id(self)] = type(self).st.encode_F()
+            assoc[id(self)] = st.encode_F()
             return
 
         assert False

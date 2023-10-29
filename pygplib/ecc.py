@@ -1,6 +1,12 @@
 import random
 
 class Ecc:
+    """Class for computing an edge clique cover.
+
+    The algorithm for computing an edge clique cover is based on heuristic
+    algorithms by Conte et al. Please see :
+    https://doi.org/10.1016/j.ic.2019.104464
+    """
 
     def __init__(self, vertex_list: list, edge_list: list):
         if len(set(vertex_list)) != len(vertex_list):

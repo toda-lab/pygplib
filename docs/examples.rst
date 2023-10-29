@@ -8,8 +8,7 @@ Encoding First-Order Expressible Property
 
 In the following code block, a graph structure object of ``GrSt`` class 
 with a list of vertices 
-``vertex_list`` and a list of edges ``edge_list`` is created and set to 
-first-order formula of graphs class ``Fog``.
+``vertex_list`` and a list of edges ``edge_list`` is created.
 The first-order formula of an independent set of size ``3``, 
 written as 
 ``(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) & (~ x1=x2) & (~ x1=x3) & (~
@@ -32,13 +31,13 @@ The CNF encoded from ``f`` is generated to ``f.cnf`` in
     vertex_list = [1,2,3,4,5,6,7]
     edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]
 
-    Fog.st = GrSt(vertex_list, edge_list, encoding="edge", prefix="V")
+    st = GrSt(vertex_list, edge_list, encoding="edge", prefix="V")
     f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) & (~ x1=x2) & (~ x1=x3) & (~ x2=x3)")
-    g = op.propnize(f)
+    g = op.propnize(f, st)
 
-    tup  = tuple([Fog.st.compute_domain_constraint(v) \
+    tup  = tuple([st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(f)])
-    mgr = Cnf( (g, ) + tup )
+    mgr = Cnf( (g, ) + tup , st)
     with open("f.cnf","w") as out:
         mgr.write(stream=out)
 
@@ -65,8 +64,8 @@ for the installation of ``pysat``.
             print("SATISFIABLE")
             ext_assign = solver.get_model() # external CNF vars.
             int_assign = mgr.decode_assignment(ext_assign) # internal CNF vars.
-            fo_assign = Fog.st.decode_assignment(int_assign) # first-order vars.
-            ans = [Fog.st.object_to_vertex(fo_assign[key]) \
+            fo_assign = st.decode_assignment(int_assign) # first-order vars.
+            ans = [st.object_to_vertex(fo_assign[key]) \
                                     for key in fo_assign.keys()]
             print(ans) # list of vertices
         else:
@@ -83,8 +82,8 @@ In the following code block, all solutions can be enumerated.
     with Solver(bootstrap_with=cnf) as solver:
         for ext_assign in solver.enum_models():
             int_assign = mgr.decode_assignment(ext_assign) # internal CNF vars.
-            fo_assign = Fog.st.decode_assignment(int_assign) # first-order vars.
-            ans = [Fog.st.object_to_vertex(fo_assign[key]) \
+            fo_assign = st.decode_assignment(int_assign) # first-order vars.
+            ans = [st.object_to_vertex(fo_assign[key]) \
                                     for key in fo_assign.keys()]
             print(ans) # list of vertices
 
@@ -159,8 +158,8 @@ for the installation of ``unigen``.
     cells, hashes, samples = c.sample(num)
     for ext_assign in samples:
         int_assign = mgr.decode_assignment(ext_assign) # internal CNF vars.
-        fo_assign = Fog.st.decode_assignment(int_assign) # first-order vars.
-        ans = [Fog.st.object_to_vertex(fo_assign[key]) \
+        fo_assign = st.decode_assignment(int_assign) # first-order vars.
+        ans = [st.object_to_vertex(fo_assign[key]) \
                                     for key in fo_assign.keys()]
         print(ans)
 

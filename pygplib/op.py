@@ -8,7 +8,7 @@ from .absexpr  import IndexGen
 from .prop     import Prop
 from .absfo    import AbsFo
 from .name     import NameMgr
-from .symrelst import SymRelSt
+from .baserelst import BaseRelSt
 
 # Common Methods
 def generator(f: AbsExpr, skip_shared: bool = False):
@@ -168,7 +168,7 @@ def compute_nnf(f: AbsExpr) -> AbsExpr:
     return _build_formula_posfix(t)
 
 
-def reduce(f: AbsExpr) -> AbsExpr:
+def reduce(f: AbsExpr, st: BaseRelSt = None) -> AbsExpr:
     """Reduces it into as simple formula as possible, retaining equivalence.
 
     Quantifiers are not eliminated except for constant operands.
@@ -190,7 +190,7 @@ def reduce(f: AbsExpr) -> AbsExpr:
             continue
         if id(g) in assoc:
             continue
-        g.reduce_step(assoc)
+        g.reduce_step(assoc, st)
 
     assert id(nnf) in assoc
     return assoc[id(nnf)]
@@ -319,7 +319,7 @@ def _eliminate_qf_step(
     assert False
 
 
-def eliminate_qf(expr: AbsFo) -> AbsFo:
+def eliminate_qf(expr: AbsFo, st: BaseRelSt) -> AbsFo:
     """Performs quantifier elimination.
 
     Args:
@@ -333,9 +333,9 @@ def eliminate_qf(expr: AbsFo) -> AbsFo:
     """
     if not issubclass(type(expr), AbsFo):
         raise TypeError("Expression must be an instance of AbsFo or its subclass")
-    if type(expr).st == None:
+    if st == None:
         raise Exception("Set relational structure")
-    const_symb_tup = type(expr).st.domain
+    const_symb_tup = st.domain
 
     assoc = {}
     for i, g in generator(expr):
@@ -349,7 +349,7 @@ def eliminate_qf(expr: AbsFo) -> AbsFo:
     return assoc[id(expr)]
 
 
-def propnize(f: AbsFo) -> Prop:
+def propnize(f: AbsFo, st: BaseRelSt) -> Prop:
     """Converts a first-order formula into an equiv. propositional formula.
 
     Args:
@@ -369,7 +369,7 @@ def propnize(f: AbsFo) -> Prop:
     if isinstance(f, Prop):
         return f
 
-    qf_free = eliminate_qf(f)
+    qf_free = eliminate_qf(f, st)
 
     assoc = {}
     for i, g in generator(qf_free, skip_shared=True):
@@ -377,7 +377,7 @@ def propnize(f: AbsFo) -> Prop:
             continue
         if id(g) in assoc:
             continue
-        g.propnize_step(assoc)
+        g.propnize_step(assoc, st)
 
     assert id(qf_free) in assoc
     return assoc[id(qf_free)]

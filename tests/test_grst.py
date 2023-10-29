@@ -110,13 +110,10 @@ def test__compute_domain_constraint_DNF_clique_encoding():
     ]
 
     NameMgr.clear()
-    Fog.st = None
 
     for test_str, vertex_list, edge_list, encoding, expected in tests:
         res = Fog.read(test_str)
         st = GrSt(vertex_list, edge_list, encoding=encoding)
-        Fog.st = st
-        Prop.st = st
 
         tup = tuple([ \
             st._compute_domain_constraint_DNF_clique_encoding(v) \
@@ -126,6 +123,3 @@ def test__compute_domain_constraint_DNF_clique_encoding():
             res_str = op.to_str(tup[i])
             res_set.add(res_str)
         assert res_set == expected, f"{res_set}, {expected}"
-
-        Fog.st = None
-        Prop.st = None

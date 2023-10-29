@@ -166,9 +166,10 @@ are listed below.
    free variables and constants of ``f``.
 -  ``get_free_vars(f)`` returns a tuple of the indices of all free
    variables of ``f``.
--  ``propnize(f)`` returns an equivalent propositional formula of
-   first-order formula ``f``. **Note: since this method performs
-   quantifier elimination, it would take much time and space if a
+-  ``propnize(f, st)`` returns an equivalent propositional formula of
+   first-order formula ``f``, given graph structure. 
+   **Note: since this method performs quantifier elimination, 
+   it would take much time and space if a
    formula contains quantifiers and a graph is large.**
 -  ``compute_cnf(tup)`` performs CNF-encoding for the conjunction of all
    ``Prop`` formulas in the tuple ``tup`` and returns a tuple of
@@ -226,8 +227,8 @@ whole formula consists of objects of ``Fog`` class with the root node ``f``.
 Creating Graph Structure
 ------------------------
 
-In order to interpret first-order formula, it is necessary to create and
-set graph structure to ``Fog`` class in advance. A graph structure is an
+In order to interpret first-order formula, it is necessary to create a 
+graph structure. A graph structure is an
 object of ``GrSt`` class, which manages domain of discourse and 
 the interpretation of relation symbols over it.
 Moreover ``GrSt`` class manages the encoding and decoding 
@@ -261,8 +262,8 @@ incidence matrix.
    # V3 |0 1 1 1 1 0|
    # V4 |0 0 0 1 0 1|
    # V5 |0 0 0 0 1 1|
-   Fog.st = GrSt(vertex_list, edge_list, encoding="edge", prefix="V")
-   assert NameMgr.lookup_name(Fog.st.vertex_to_object(vertex_list[1])) == "V2"
+   st = GrSt(vertex_list, edge_list, encoding="edge", prefix="V")
+   assert NameMgr.lookup_name(st.vertex_to_object(vertex_list[1])) == "V2"
 
 As above, ``vertex_to_object()`` converts a vertex into a constant symbol
 index. When ``GrSt`` object is initialized, such constant symbols are 
@@ -291,7 +292,7 @@ self-contained and pure-Python module.
    # V3 |1 1 1 1|
    # V4 |0 1 0 0|
    # V5 |0 1 0 1|
-   Fog.st = GrSt(vertex_list, edge_list, encoding="clique", prefix="V")
+   st = GrSt(vertex_list, edge_list, encoding="clique", prefix="V")
 
 The third example is the direct-encoding (or one-hot encoding).
 Given the following structure, a first-order variables is assigned vertex, 
@@ -306,7 +307,7 @@ corresponding bit ``01000``.
    # V3 |0 0 1 0 0|
    # V4 |0 0 0 1 0|
    # V5 |0 0 0 0 1|
-   Fog.st = GrSt(vertex_list, edge_list, encoding="direct", prefix="V")
+   st = GrSt(vertex_list, edge_list, encoding="direct", prefix="V")
 
 Note: Interpretation of Atoms
 -----------------------------
@@ -327,7 +328,7 @@ Encoding First-Order Formula
 Let us now describe how first-order formulas can be encoded into CNFs with 
 ``pygplib``.
 
-In the following code block, a graph structure is created and set to ``Fog``.
+In the following code block, a graph structure is created.
 A first-order formula is parsed and constructed.
 It is then converted to a tuple of propositional formulas 
 ``Prop`` ``(g, ) + tup``,  with which ``Cnf`` object ``mgr`` is created.
@@ -338,15 +339,15 @@ It is then converted to a tuple of propositional formulas
 
     vertex_list = [1,2,3,4,5]
     edge_list = [(1,2),(1,3),(2,3),(3,4),(3,5),(4,5)]
-    Fog.st = GrSt(vertex_list, edge_list, encoding="clique", prefix="V")
+    st = GrSt(vertex_list, edge_list, encoding="clique", prefix="V")
 
     f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3))")
 
-    g = op.propnize(f)
-    tup  = tuple([Fog.st.compute_domain_constraint(v) \
+    g = op.propnize(f, st)
+    tup  = tuple([st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(f)])
 
-    mgr = Cnf( (g, ) + tup )
+    mgr = Cnf( (g, ) + tup , st)
 
 We will describe this code block in more details in the following sections
 in terms of the Boolean encoding part (the computation of
@@ -440,6 +441,11 @@ be useful.
 
     $ cat f.cnf
     (The first part omitted)
+    c dom V1: 2 4
+    c dom V2: 2
+    c dom V3: 1 2 3 4
+    c dom V4: 1 3
+    c dom V5: 1
     c enc 2 x1@1
     c enc 4 x2@1
     c enc 7 x1@2
@@ -447,15 +453,19 @@ be useful.
     c enc 13 x1@3
     c enc 15 x2@3
     c enc 19 x1@4
+    (The remaining part omitted)
 
-Each line beginning with ``c enc`` shows the mapping between external CNF
+Each line beginning with ``c dom`` shows the code of each vertex, and
+each line beginning with ``c enc`` shows the mapping between external CNF
 variable indices and internal CNF variable names:
 ``c enc <dimacs_cnf_variable_index> <name_of_first_order_variable>@<bit>``
 , where the name of an internal CNF variable is the concatenation of the
 corresponding first-order variable and bit position.
 For instance, the above header means that a first-order variable, say ``x1``,
 is encoded in such a way that the first-bit ``x1@1`` is represented by 
-DIMACS CNF variable ``2``, the second bit ``x1@2`` by ``4``, and so on.
+DIMACS CNF variable ``2``, the second bit ``x1@2`` by ``4``, and so on;
+The assignment ``x1@1=0``, ``x1@2=1``, ``x1@3=0``, and ``x1@4=1`` means that
+``x1`` is assigned vertex ``V1`` (because the code of ``V1`` is ``(2,4)``).
 
 The CNF computation is done by Tseitin transformation. 
 There is a one-to-one correspondence between satisfying assignments 

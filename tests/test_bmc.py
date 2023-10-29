@@ -19,7 +19,7 @@ def test_bmc():
     edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]
 
     for encoding in ["edge", "clique", "direct"]:
-        Fog.st = GrSt(vertex_list,edge_list,encoding=encoding)
+        st = GrSt(vertex_list,edge_list,encoding=encoding)
 
         state_expr = Fog.read(
             "    (~ x1=x2 & ~ edg(x1,x2)) "
@@ -44,7 +44,7 @@ def test_bmc():
                 f"  x1=V{test_fin[0]} " + f"& x2=V{test_fin[1]} " + f"& x3=V{test_fin[2]} "
             )
 
-            bmc = Bmc(state_expr, trans_expr, ini_expr, fin_expr, \
+            bmc = Bmc(state_expr, trans_expr, ini_expr, fin_expr, st, \
                         trans_type=test_trans)
 
             assert bmc._nof_free_vars == len(bmc._next_vars)
@@ -75,8 +75,8 @@ def test_bmc():
                         continue
                 ans = []
                 for assign in bmc.decode(m):
-                    res = Fog.st.decode_assignment(assign)
-                    ans.append([Fog.st.object_to_vertex(res[key]) \
+                    res = st.decode_assignment(assign)
+                    ans.append([st.object_to_vertex(res[key]) \
                                     for key in sorted(res.keys())])
                 validate_ans(ans, N, edge_list, test_ini, test_fin, test_trans)
                 solved = True
@@ -99,7 +99,7 @@ def test_bmc_bipartite_order():
     edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]
 
     for encoding in ["edge", "clique", "direct"]:
-        Fog.st = GrSt(vertex_list,edge_list,encoding=encoding)
+        st = GrSt(vertex_list,edge_list,encoding=encoding)
         Fog.bipartite_order = True
 
         state_expr = Fog.read(
@@ -125,7 +125,7 @@ def test_bmc_bipartite_order():
                 f"  x1=V{test_fin[0]} " + f"& x2=V{test_fin[1]} " + f"& x3=V{test_fin[2]} "
             )
 
-            bmc = Bmc(state_expr, trans_expr, ini_expr, fin_expr,\
+            bmc = Bmc(state_expr, trans_expr, ini_expr, fin_expr, st, \
                 trans_type=test_trans)
 
             assert bmc._nof_free_vars == len(bmc._next_vars)
@@ -156,8 +156,8 @@ def test_bmc_bipartite_order():
                         continue
                 ans = []
                 for assign in bmc.decode(m):
-                    res = Fog.st.decode_assignment(assign)
-                    ans.append([Fog.st.object_to_vertex(res[key]) \
+                    res = st.decode_assignment(assign)
+                    ans.append([st.object_to_vertex(res[key]) \
                                     for key in sorted(res.keys())])
                 validate_ans(ans, N, edge_list, test_ini, test_fin, test_trans)
                 solved = True

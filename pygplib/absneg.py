@@ -1,6 +1,7 @@
 """Class of abstract logical formula with true/false constants and negation"""
 from .absexpr import AbsExpr
 from .absexpr import IndexGen
+from .baserelst import BaseRelSt
 
 
 class AbsNeg(AbsExpr):
@@ -97,7 +98,8 @@ class AbsNeg(AbsExpr):
 
         super().compute_nnf_step(negated, s, t)
 
-    def compute_cnf_step(self, igen: IndexGen, assoc: dict, cnf: list) -> None:
+    def compute_cnf_step(self, igen: IndexGen, \
+        assoc: dict, cnf: list) -> None:
         """Performs CNF computation for this object."""
         if self.is_neg_term():  # a <-> -b :  (-a or -b) and (a or b)
             a = igen.get_next()
@@ -114,7 +116,7 @@ class AbsNeg(AbsExpr):
         ), "compute_cnf_step() assumes reduced formulas"
         super().compute_cnf_step(igen, assoc, cnf)
 
-    def reduce_step(self, assoc: dict) -> None:
+    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computation for this object."""
         if self.is_neg_term():
             g = assoc[id(self.get_operand(1))]
@@ -129,7 +131,7 @@ class AbsNeg(AbsExpr):
         if self.is_true_atom() or self.is_false_atom():
             assoc[id(self)] = self
             return
-        super().reduce_step(assoc)
+        super().reduce_step(assoc, st)
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""

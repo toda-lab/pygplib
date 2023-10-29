@@ -55,11 +55,10 @@ def test_get_free_vars():
 
 def test_eliminate_qf():
     NameMgr.clear()
-    Fog.st = None
 
     form = Fog.read("T")
     with pytest.raises(Exception):
-        op.eliminate_qf(form)
+        op.eliminate_qf(form, None)
 
     #  | 1 2
     #--------
@@ -68,13 +67,11 @@ def test_eliminate_qf():
     # 3| 0 1
     vertex_list = [1,2,3]
     edge_list= [(1,2), (2,3)]
-    Fog.st = GrSt(vertex_list, edge_list)
+    st = GrSt(vertex_list, edge_list)
 
-    res = op.eliminate_qf(form)
+    res = op.eliminate_qf(form, st)
     res_str = op.to_str(res)
     assert res_str == "T"
-
-    Fog.st = None
 
 
 def test_substitute():

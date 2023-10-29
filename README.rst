@@ -22,12 +22,10 @@ Basic steps to follow are :
   assignments.
 - Decode the result into an assignment of first-order variables.
 
-Note: the current version remains in an experimental stage.
-
 Documentation
 =============
 
-For installation, examples, tutorials, and so one, please see `online documentation <https://pygplib.readthedocs.io/en/latest/>`__ .
+For installation, examples, tutorials, and so on, please see `online documentation <https://pygplib.readthedocs.io/en/latest/>`__ .
 
 
 Citation

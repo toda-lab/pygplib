@@ -23,8 +23,8 @@ class GrSt(SymRelSt):
         import pygplib import GrSt, Fog, NameMgr
         vertex_list = [3,1,2,5]
         edge_list   = [(2,1),(1,3),(3,2),(3,5)]
-        Fog.st = GrSt(vertex_list, edge_list, prefix = "W")
-        i = Fog.st.vertex_to_object(vertex_list[0])
+        st = GrSt(vertex_list, edge_list, prefix = "W")
+        i = st.vertex_to_object(vertex_list[0])
         assert NameMgr.lookup_name(i) == f"W{vertex_list[0]}"
 
     """

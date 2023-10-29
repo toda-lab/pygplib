@@ -3,14 +3,14 @@
 import sys
 
 from .name import NameMgr
-from .prop import Prop
+from .baserelst import BaseRelSt
 from .     import op
 
 
 class Cnf:
     """CNF Converter Class"""
 
-    def __init__(self, expr_tup: tuple):
+    def __init__(self, expr_tup: tuple, st: BaseRelSt = None):
         """Constructs CNF from tuple of formulas with Tseitin transformation.
 
         Note:
@@ -19,7 +19,12 @@ class Cnf:
 
         Args:
             expr_tup: tuple of propositional formulas
+            st: relational structure object (If given, coding information will
+            be added to the header of DIMACS CNF)
         """
+
+        self.st = st
+        """structure (optional)"""
 
         self._dic = {}
         """dict to find encoded index from original index."""
@@ -102,10 +107,6 @@ class Cnf:
                         if abs(self.decode_lit(x)) <= self._base]
         return tuple(res)
 
-    def get_max_important_var(self) -> int:
-        """Gets the maximum index of an important variable in CNF."""
-        return self._base
-
     def get_nvar(self) -> int:
         """Gets the number of variables in CNF."""
         return self._nvar
@@ -134,6 +135,13 @@ class Cnf:
         if stream == None:
             stream = sys.stdout
 
+        dom = []
+        if self.st != None:
+            for pos, obj in enumerate(self.st.domain):
+                code = self.st.get_code(obj)
+                name = NameMgr.lookup_name(obj)
+                dom.append(f"c dom {name}: "+" ".join(map(str, code)))
+
         enc = [
             f"c enc {i+1} {NameMgr.lookup_name(self.decode_lit(i+1))}"
             for i in range(self._nvar)
@@ -146,6 +154,9 @@ class Cnf:
             out += f"p cnf {self._nvar} {len(self._packed_cnf)}\n"
             for expr in self._expr_tup:
                 out += f"c expr {op.to_str(expr)}\n"
-            out += "\n".join(enc + body)
+            if self.st != None:
+                out += "\n".join(dom+enc+body)
+            else:
+                out += "\n".join(enc+body)
             out += "\n"
             stream.write(out)

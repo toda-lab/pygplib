@@ -3,6 +3,7 @@
 from .absexpr import AbsExpr
 from .absprop import AbsProp
 from .name    import NameMgr
+from .baserelst import BaseRelSt
 
 
 class AbsFo(AbsProp):
@@ -200,7 +201,7 @@ class AbsFo(AbsProp):
 
         assert False
 
-    def reduce_step(self, assoc: dict) -> None:
+    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce compuation for this object."""
 
         if self.is_forall_term():
@@ -213,12 +214,12 @@ class AbsFo(AbsProp):
                 return
 
             if g.is_false_atom():
-                if type(self).st != None:
-                    if len(type(self).st.domain) > 0:
-                        # ! [x] : F = F if there is at least one vertex.
+                if st != None:
+                    if len(st.domain) > 0:
+                        # ! [x] : F = F if there is at least one object.
                         assoc[id(self)] = type(self).false_const()
                     else:
-                        # ! [x] : F = T if there is no vertex.
+                        # ! [x] : F = T if there is no object.
                         assoc[id(self)] = type(self).true_const()
                     return
 
@@ -230,12 +231,12 @@ class AbsFo(AbsProp):
             g = assoc[id(self.get_operand(1))]
 
             if g.is_true_atom():
-                if type(self).st != None:
-                    if len(type(self).st.domain) > 0:
-                        # ? [x] : T = T if there is at least one vertex.
+                if st != None:
+                    if len(st.domain) > 0:
+                        # ? [x] : T = T if there is at least one object.
                         assoc[id(self)] = type(self).true_const()
                     else:
-                        # ? [x] : T = F if there is no vertex.
+                        # ? [x] : T = F if there is no object.
                         assoc[id(self)] = type(self).false_const()
                     return
 
@@ -247,7 +248,7 @@ class AbsFo(AbsProp):
             assoc[id(self)] = type(self).exists(g, bvar)
             return
 
-        super().reduce_step(assoc)
+        super().reduce_step(assoc, st)
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""

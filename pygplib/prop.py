@@ -9,6 +9,7 @@ from .absexpr import AbsExpr
 from .absexpr import IndexGen
 from .absprop import AbsProp
 from .name import NameMgr
+from .baserelst import BaseRelSt
 
 
 class Prop(AbsProp):
@@ -78,7 +79,8 @@ class Prop(AbsProp):
             return
         super().compute_nnf_step(negated, s, t)
 
-    def compute_cnf_step(self, igen: IndexGen, assoc: dict, cnf: list) -> None:
+    def compute_cnf_step(self, igen: IndexGen, \
+        assoc: dict, cnf: list) -> None:
         """Peforms CNF computation for this object."""
         if self.is_var_atom():
             assoc[id(self)] = self.get_var_index()
@@ -205,12 +207,12 @@ class Prop(AbsProp):
         )
         return EXPR.parse_string(formula_str, parse_all=True)[0]
 
-    def reduce_step(self, assoc: dict) -> None:
+    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computation for this object."""
         if self.is_var_atom():
             assoc[id(self)] = self
             return
-        super().reduce_step(assoc)
+        super().reduce_step(assoc, st)
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""

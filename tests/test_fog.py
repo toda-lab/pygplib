@@ -92,7 +92,6 @@ def test_read():
     ]
 
     NameMgr.clear()
-    Fog.st = None
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
@@ -174,7 +173,6 @@ def test_read_bipartite_order():
     ]
 
     NameMgr.clear()
-    Fog.st = None
     Fog.bipartite_order = True
 
     for test_str, expected in tests:
@@ -246,7 +244,6 @@ def gen_form_rand(depth: int = 3) -> Fog:
 
 def test_format():
     NameMgr.clear()
-    Fog.st = None
 
     for x in range(3):
         test_form = gen_form_rand()
@@ -333,7 +330,6 @@ def test_generator():
     ]
 
     NameMgr.clear()
-    Fog.st = None
 
     for test_str, prefix_expected, infix_expected, postfix_expected in tests:
         res = Fog.read(test_str)
@@ -464,7 +460,6 @@ def test_compute_nnf():
     ]
 
     NameMgr.clear()
-    Fog.st = None
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
@@ -498,7 +493,6 @@ def test_reduce():
     ]
 
     NameMgr.clear()
-    Fog.st = None
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
@@ -564,21 +558,18 @@ def test_reduce_with_st():
     #
 
     NameMgr.clear()
-    Fog.st = None
 
     vertex_list = [1,2,3,4,5]
     edge_list = [(1,2),(1,3),(2,3),(3,4),(3,5),(4,5)]
 
     for encoding in ["edge", "clique", "direct"]:
-        Fog.st = GrSt(vertex_list, edge_list, encoding=encoding)
+        st = GrSt(vertex_list, edge_list, encoding=encoding)
 
         for test_str, expected in tests:
             res = Fog.read(test_str)
-            res = op.reduce(res)
+            res = op.reduce(res,st)
             res_str = op.to_str(res)
             assert res_str == expected, f"{res_str}, {expected}"
-
-    Fog.st = None
 
 
 def test_get_free_vars_and_consts():
@@ -603,7 +594,6 @@ def test_get_free_vars_and_consts():
     ]
 
     NameMgr.clear()
-    Fog.st = None
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
@@ -622,7 +612,6 @@ def test_get_free_vars():
     ]
 
     NameMgr.clear()
-    Fog.st = None
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
@@ -675,16 +664,15 @@ def test_eliminate_qf():
     #
 
     NameMgr.clear()
-    Fog.st = None
 
     vertex_list = [1,2,3,4,5]
     edge_list = [(1,2),(1,3),(2,3),(3,4),(3,5),(4,5)]
 
     for encoding in ["edge", "clique", "direct"]:
-        Fog.st = GrSt(vertex_list, edge_list, encoding=encoding)
+        st = GrSt(vertex_list, edge_list, encoding=encoding)
         for test_str, expected in tests:
             res = Fog.read(test_str)
-            res = op.eliminate_qf(res)
+            res = op.eliminate_qf(res, st)
             res_str = op.to_str(res)
             assert res_str == expected, f"{res_str}, {expected}"
 
@@ -708,15 +696,13 @@ def test_eliminate_qf():
     ]
 
     for encoding in ["edge", "clique", "direct"]:
-        Fog.st = GrSt(vertex_list, edge_list, encoding=encoding)
+        st = GrSt(vertex_list, edge_list, encoding=encoding)
         for test_str, expected in tests:
             res = Fog.read(test_str)
-            res = op.eliminate_qf(res)
-            res = op.reduce(res)
+            res = op.eliminate_qf(res, st)
+            res = op.reduce(res, st)
             res_str = op.to_str(res)
             assert res_str == expected, f"{res_str}, {expected}"
-
-    Fog.st = None
 
 
 def test_substitute():
@@ -735,7 +721,6 @@ def test_substitute():
     ]
 
     NameMgr.clear()
-    Fog.st = None
 
     for test_str, op1_str, op2_str, expected in tests:
         form = Fog.read(test_str)
@@ -774,18 +759,12 @@ def test_propnize():
     vertex_list = [1,2,3]
     edge_list= [(1,2), (2,3)]
     st = GrSt(vertex_list, edge_list)
-    Fog.st = st
-    Prop.st = st
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
-        res = op.propnize(res)
+        res = op.propnize(res, st)
         res_str = op.to_str(res)
         assert res_str == expected, f"{res_str}, {expected}"
-
-    Fog.st = None
-    Prop.st = None
-
 
 def test_propnize_bipartite_order():
     tests = [
@@ -813,7 +792,6 @@ def test_propnize_bipartite_order():
     ]
 
     NameMgr.clear()
-    Fog.st = None
     Fog.bipartite_order = True
     Prop.bipartite_order = True
     #  | 1 2
@@ -824,16 +802,12 @@ def test_propnize_bipartite_order():
     vertex_list = [1,2,3]
     edge_list= [(1,2), (2,3)]
     st = GrSt(vertex_list, edge_list)
-    Fog.st = st
-    Prop.st = st
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
-        res = op.propnize(res)
+        res = op.propnize(res, st)
         res_str = op.to_str(res)
         assert res_str == expected, f"{res_str}, {expected}"
 
-    Fog.st = None
-    Prop.st = None
     Fog.bipartite_order = False
     Prop.bipartite_order = False

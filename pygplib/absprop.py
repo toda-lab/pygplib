@@ -3,6 +3,7 @@
 from .absexpr import AbsExpr
 from .absexpr import IndexGen
 from .absneg  import AbsNeg
+from .baserelst import BaseRelSt
 
 
 class AbsProp(AbsNeg):
@@ -227,7 +228,8 @@ class AbsProp(AbsNeg):
 
         super().compute_nnf_step(negated, s, t)
 
-    def compute_cnf_step(self, igen: IndexGen, assoc: dict, cnf: list) -> None:
+    def compute_cnf_step(self, igen: IndexGen, \
+        assoc: dict, cnf: list) -> None:
         """Performs CNF computation for this object."""
 
         # a <-> b and c:  (-a or b) and (-a or c) and (a or -b or -c)
@@ -261,7 +263,7 @@ class AbsProp(AbsNeg):
         ), "compute_cnf_step() assumes reduced formulas"
         super().compute_cnf_step(igen, assoc, cnf)
 
-    def reduce_step(self, assoc: dict) -> None:
+    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computation for this object."""
         if self.is_land_term():
             left = assoc[id(self.get_operand(1))]
@@ -317,7 +319,7 @@ class AbsProp(AbsNeg):
             assoc[id(self)] = type(self).lor(left, right)
             return
 
-        super().reduce_step(assoc)
+        super().reduce_step(assoc, st)
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""

@@ -25,8 +25,7 @@ graph, ``G``, with ``pygplib``.
     # V4---V7   V6
 
 Import necessary modules,
-create a graph structure object of class ``GrSt`` with ``G`` 
-, and set it to the first-order formula class ``Fog``.
+create a graph structure object of class ``GrSt`` with ``G``.
 
 .. code:: python
 
@@ -34,7 +33,7 @@ create a graph structure object of class ``GrSt`` with ``G``
 
     vertex_list = [1,2,3,4,5,6,7]                            # vertices of G
     edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]  # edges of G
-    Fog.st = GrSt(vertex_list, edge_list)
+    st = GrSt(vertex_list, edge_list)
 
 Parse the expression of an independent set of size ``3`` 
 and construct a first-order formula object, ``f``,
@@ -56,10 +55,10 @@ The encoding performed here is described in more details in
 
 .. code:: python
 
-    g = op.propnize(f)
-    tup  = tuple([Fog.st.compute_domain_constraint(v) \
+    g = op.propnize(f, st)
+    tup  = tuple([st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(f)])
-    mgr = Cnf( (g, ) + tup )
+    mgr = Cnf( (g, ) + tup , st)
 
 Generate a CNF formula to file ``f.cnf`` in `DIMACS CNF format
 <http://www.satcompetition.org/2009/format-benchmarks2009.html>`__ as follows.

@@ -1,5 +1,6 @@
 """Base class of logical formula as well as index generator"""
 
+from .baserelst import BaseRelSt
 
 class IndexGen:
     """Generates indices.
@@ -47,6 +48,7 @@ class AbsExpr:
 
     Attributes:
         _unique_table: dict. to find an object from its string representation.
+	bipartite_order: enables bipartite order of applying operations
         _ATOM_TAGS:  tuple of strings, representing types of atom.
         _BINOP_TAGS: tuple of strings, representing types of binary operator.
         _UNOP_TAGS: tuple of strings, representing types of uniary operator.
@@ -62,11 +64,9 @@ class AbsExpr:
         does not provide the functionality of deleting unnecessary objects.
     """
 
-    st = None
-    """st: relational structure"""
     _unique_table = {}
     bipartite_order = False
-    """bipartitite_order: enables bipartite order of applying operations"""
+    """enables bipartite order of applying operations"""
 
     # Tag-related Variables and Methods
     _ATOM_TAGS = ()
@@ -182,11 +182,12 @@ class AbsExpr:
         """Performs NNF compuation for this object."""
         assert False, f"{self.gen_key()}"
 
-    def compute_cnf_step(self, igen: IndexGen, assoc: dict, cnf: list) -> None:
+    def compute_cnf_step(self, igen: IndexGen, \
+        assoc: dict, cnf: list) -> None:
         """Performs CNF compuation for this object."""
         assert False, f"{self.gen_key()}"
 
-    def reduce_step(self, assoc: dict) -> None:
+    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce compuation for this object."""
         assert False, f"{self.gen_key()}"
 
