@@ -59,10 +59,10 @@ with equal priority are associated, recursively halving them.
 
     Fog.bipartite_order = False
     f = Fog.read("T & T & T & T")
-    assert Fog.Fog.read(f) == "(((T & T) & T) & T)"
+    assert op.to_str(f) == "(((T & T) & T) & T)"
     Fog.bipartite_order = True
     f = Fog.read("T & T & T & T")
-    assert Fog.Fog.read(f) == "((T & T) & (T & T))"
+    assert op.to_str(f) == "((T & T) & (T & T))"
     Fog.bipartite_order = False
 
 Similarly, when ``Prop.bipartite_order`` is set ``True``, 
@@ -124,10 +124,10 @@ Basic Operations
 
    v = NameMgr.lookup_index("x")
    w = NameMgr.lookup_index("y")
-   f = Fog.edg(v,v)
+   f = Fog.edg(v,w)
    assert op.to_str(f) == "edg(x, y)"
 
-   g = Fog.neg(Fog.eq(v,v))
+   g = Fog.neg(Fog.eq(v,w))
    assert op.to_str(f) == "(~ x = y)"
 
    h = Fog.implies(f,g)
