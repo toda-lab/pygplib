@@ -2,24 +2,24 @@
 
 import importlib.metadata
 
-from pygplib.prop import Prop
-from pygplib.fog  import Fog
-from pygplib.symrelst import SymRelSt
-from pygplib.grst import GrSt
-from pygplib.cnf  import Cnf
-from pygplib.name import NameMgr
-import pygplib.op
-from pygplib.ecc  import Ecc
-
 __version__ = importlib.metadata.version(__package__)
+
+from .prop import Prop
+from .fog import Fog
+from .grst import GrSt
+from .symrelst import SymRelSt
+from .baserelst import BaseRelSt
+from .cnf import Cnf
+from .ecc import Ecc
+from .name import NameMgr
 
 __all__ = [
     "Prop",
     "Fog",
-    "SymRelSt",
     "GrSt",
     "Cnf",
     "NameMgr",
+    "BaseRelSt",
+    "SymRelSt",
     "op",
-    "Ecc",
 ]

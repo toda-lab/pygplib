@@ -48,7 +48,6 @@ class AbsExpr:
 
     Attributes:
         _unique_table: dict. to find an object from its string representation.
-	bipartite_order: enables bipartite order of applying operations
         _ATOM_TAGS:  tuple of strings, representing types of atom.
         _BINOP_TAGS: tuple of strings, representing types of binary operator.
         _UNOP_TAGS: tuple of strings, representing types of uniary operator.

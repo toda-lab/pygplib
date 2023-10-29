@@ -372,8 +372,6 @@ def propnize(f: AbsFo, st: BaseRelSt) -> Prop:
     """
     if not issubclass(type(f), AbsFo):
         raise TypeError("Expression must be an instance of AbsFo or its subclass")
-    if isinstance(f, Prop):
-        return f
 
     qf_free = eliminate_qf(f, st)
 

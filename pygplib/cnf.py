@@ -4,8 +4,7 @@ import sys
 
 from .name import NameMgr
 from .baserelst import BaseRelSt
-from .     import op
-
+from . import op
 
 class Cnf:
     """CNF Converter Class"""

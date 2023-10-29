@@ -246,6 +246,7 @@ a binary code (a row vector) of the matrix, which is a vertex-edge
 incidence matrix.
 
 .. code:: python
+
    from pygplib from GrSt
    from pygplib from NameMgr
    # V1 --- V2
