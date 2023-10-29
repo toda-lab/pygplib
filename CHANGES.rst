@@ -34,3 +34,4 @@ Changed
  - the format of first-order formulas (negation, existential and universal quantifiers) to make it compartible with TPTP format.
  - Renamed ``decode_assign()`` of ``pygplib/cnf.py`` to ``decode_assignment()`` and changed an output assignment so that auxiliary variables are ignored.
  - Removed field ``st`` in formula class and changed to give relational structure as argument of each method that requires it. 
+ - Changed API of ``compute_domain_constraint()`` so that the input is an index of a free variable and the output is a Prop formula object.

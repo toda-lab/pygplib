@@ -6,8 +6,13 @@ from .be   import Be
 class BaseRelSt(Be):
     """Base class of relational structure.
 
-    Variables run over a single domain of discourse.
+    This class assumes the followings:
     There is no function symbol.
+    A first-order variable runs over a single domain of discourse.
+    A first-order variable is encoded with a sequence of Boolean variables of
+    fixed-length.
+    Each object in domain has unique code, represented 
+    by a tuple of integers.
     """
 
     def __init__(self, \

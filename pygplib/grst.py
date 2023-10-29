@@ -67,12 +67,12 @@ class GrSt(SymRelSt):
                 Ecc(self.verts, self.edges).compute_separating_ecc())
         elif self._encoding == "direct":
             super().__init__(self.verts, \
-                tuple([(i+1,) for i in range(len(self.verts))])
+                tuple([(i+1,) for i in range(len(self.verts))]) \
                 )
         elif self._encoding == "log":
-            raise Exception
+            raise Exception("not-yet-implemented")
         else:
-            raise Exception
+            raise Exception(f"invalid encoding type: {self._encoding}")
 
     def _normalize_edge_list(self, edge_list: list) -> list:
         res = []

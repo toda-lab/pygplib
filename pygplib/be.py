@@ -4,7 +4,14 @@ from .name import NameMgr
 
 
 class Be:
-    """Class of Boolean encoding of first-order variables"""
+    """Class of Boolean encoding of first-order variables
+
+    A first-order variable is encoded with a sequence of Boolean variables of
+    fixed-length.
+    Each such Boolean variable is registered to NameMgr as name x@i, where x
+    is the name of the first-order variable from which the Boolean variable is
+    encoded and i is the position.
+    """
 
     def __init__(self, length: int):
         """Initializes an object of Be class"""
