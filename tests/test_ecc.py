@@ -87,8 +87,8 @@ def test__select_uncovered_edge():
         if variant == "r":
             for i in range(10):
                 u,v = obj._select_uncovered_edge(U,variant=variant)
-                assert u in obj.verts
-                assert v in obj.verts
+                assert u in obj._verts
+                assert v in obj._verts
                 e = tuple(sorted([u,v])) 
                 assert e in U
         
@@ -175,7 +175,7 @@ def test__mark_all_edges_covered():
     for Q,U,pi,expected in tests:
         obj._mark_all_edges_covered(Q,U,pi)
         assert U == expected["U"]
-        assert set(pi) == set([i for i in range(len(obj.edges))])
+        assert set(pi) == set([i for i in range(len(obj._edges))])
 
 def test_compute_ecc():
     tests = (
@@ -211,10 +211,10 @@ def test_compute_ecc():
                 for v in Q:
                     if u != v:
                         e = tuple(sorted([u,v]))
-                        assert e in obj.edges
+                        assert e in obj._edges
 
         # edge cover?
-        for edge in obj.edges:
+        for edge in obj._edges:
             found = False
             for Q in res:
                 if edge[0] in Q and edge[1] in Q:
@@ -256,10 +256,10 @@ def test_compute_separating_ecc():
                 for v in Q:
                     if u != v:
                         e = tuple(sorted([u,v]))
-                        assert e in obj.edges
+                        assert e in obj._edges
 
         # edge cover?
-        for edge in obj.edges:
+        for edge in obj._edges:
             found = False
             for Q in res:
                 if edge[0] in Q and edge[1] in Q:
