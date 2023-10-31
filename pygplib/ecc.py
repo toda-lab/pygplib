@@ -20,35 +20,33 @@ class Ecc:
                 or e[1] not in vertex_list:
                 raise Exception(f"invalid vertex specified by edge: {e}")
 
-        self.verts = tuple(vertex_list)
+        self._verts = tuple(vertex_list)
         """tuple of vertices"""
-        self.edges = tuple([tuple(sorted(e)) for e in edge_list])
+        self._edges = tuple([tuple(sorted(e)) for e in edge_list])
         """tuple of edges, where each edge is a sorted tuple."""
         self._invdic = {}
-        """dictionary to find the position of an edge or vertex in self.edges"""
-        for pos, e in enumerate(self.edges):
+        """dictionary to find the position of edge or vertex in self._edges"""
+        for pos, e in enumerate(self._edges):
             assert e not in self._invdic
             self._invdic[e] = pos
-        for pos, v in enumerate(self.verts):
+        for pos, v in enumerate(self._verts):
             assert v not in self._invdic
             self._invdic[v] = pos
         self._N = {}
         """dictionary to find the neighborhood of a vertex"""
-        for e in self.edges:
-            if e[0] not in self._N:
-                self._N[e[0]] = set()
+        for v in self._verts:
+            self._N[v] = set()
+        for e in self._edges:
             self._N[e[0]].add(e[1])
-            if e[1] not in self._N:
-                self._N[e[1]] = set()
             self._N[e[1]].add(e[0])
         self.nof_isolated_verts = 0
         """number of isolated vertices"""
-        for v in self.verts:
+        for v in self._verts:
             if len(self._N[v]) == 0:
                 self.nof_isolated_verts += 1
         self.nof_isolated_edges = 0
         """number of isolated edges"""
-        for e in self.edges:
+        for e in self._edges:
             if len(self._N[e[0]]) == 1 and len(self._N[e[1]]):
                 self.nof_isolated_edges += 1
 
@@ -142,11 +140,11 @@ class Ecc:
             raise Exception(f"variant {variant} not defined")
         C = []
         # edge clique cover
-        U = [e for e in self.edges]
+        U = [e for e in self._edges]
         # edges remaining uncovered
-        p = [pos for pos in range(len(self.edges))]
+        p = [pos for pos in range(len(self._edges))]
         # list to find the position of each edge in U.
-        # U[p[i]] == self.edges[i] holds if the i-th edge remains uncovered.
+        # U[p[i]] == self._edges[i] holds if the i-th edge remains uncovered.
         while U != []:
             u,v = self._select_uncovered_edge(U,variant=variant[0])
             Q = self._find_clique_covering(u,v,U,variant=variant[1])
@@ -222,20 +220,20 @@ class Ecc:
         C = list(self.compute_ecc(variant=variant))
 
         # separating edge clique cover
-        M = [set() for v in self.verts]
+        M = [set() for v in self._verts]
         # cliques incident to each vertex
         for pos, Q in enumerate(C):
             for v in Q:
                 M[self._invdic[v]].add(pos)
-        U = [e for e in self.edges \
+        U = [e for e in self._edges \
                 if M[self._invdic[e[0]]] == M[self._invdic[e[1]]]]
         # edges remaining unseparated
-        p = [pos for pos in range(len(self.edges))]
+        p = [pos for pos in range(len(self._edges))]
         # list to find the position of each edge in U.
-        # U[p[i]] == self.edges[i] holds if the i-th edge remains unseparated.
+        # U[p[i]] == self._edges[i] holds if the i-th edge remains unseparated.
         while U != []:
             u,v = self._select_unseparated_edge(U,variant=variant[0])
-            assert tuple(sorted([u,v])) in self.edges
+            assert tuple(sorted([u,v])) in self._edges
             Q = self._find_clique_separating(u,v,U,variant=variant[1])
             C.append(Q)
             self._mark_all_edges_separated(Q,U,p)

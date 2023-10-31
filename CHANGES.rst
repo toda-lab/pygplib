@@ -3,6 +3,21 @@
 CHANGES
 =======
 
+Version 2.0.2 - 2023-10-31
+--------------------------
+
+Fixed
+^^^^^
+
+- Fixed direct-encoding of GrSt class
+- Fixed initialization of Ecc object for a graph with isolated vertex (vertex without neighboring vertex).
+
+Changed
+^^^^^^^
+
+- Cleaned the code of GrSt class.
+- Improved tests for GrSt class.
+
 Version 2.0.1 - 2023-10-29
 --------------------------
 
