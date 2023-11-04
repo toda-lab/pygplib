@@ -6,9 +6,7 @@ Examples of Usage
 Encoding First-Order Expressible Property
 -----------------------------------------
 
-In the following code block, a graph structure object of ``GrSt`` class 
-with a list of vertices 
-``vertex_list`` and a list of edges ``edge_list`` is created.
+In the following code block, a graph structure is created.
 The first-order formula of an independent set of size ``3``, 
 written as 
 ``(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) & (~ x1=x2) & (~ x1=x3) & (~
@@ -37,7 +35,7 @@ The CNF encoded from ``f`` is generated to ``f.cnf`` in
 
     tup  = tuple([st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(f)])
-    mgr = Cnf( (g, ) + tup , st)
+    mgr = Cnf( (g, ) + tup )
     with open("f.cnf","w") as out:
         mgr.write(stream=out)
 
@@ -45,11 +43,10 @@ Solving First-Order Expressible Property
 ----------------------------------------
 
 In the following code block, which continues the previous code block, 
-a solution satisfying the current first-order formula ``f``, i.e. a vertex assignment to first-order
-variables ``x1``, ``x2``, and ``x3``, can be computed with ``pysat``, 
+a solution is computed with ``pysat``, 
 `a toolkit for SAT-based prototyping in Python <https://pysathq.github.io/>`__ .
 The ``pygplib`` in itself does not provide any functionality of 
-solving encoded formulas, and is independent of ``pysat`` module.
+solving formulas, and is independent of ``pysat`` module.
 Please see `the instruction page <https://pysathq.github.io/installation/>`__ 
 for the installation of ``pysat``.
 
@@ -67,11 +64,11 @@ for the installation of ``pysat``.
             fo_assign = st.decode_assignment(int_assign) # first-order vars.
             ans = [st.object_to_vertex(fo_assign[key]) \
                                     for key in fo_assign.keys()]
-            print(ans) # list of vertices
+            print(ans) # solution
         else:
             print("UNSATISFIABLE")
 
-In the following code block, all solutions can be enumerated.
+In the following code block, all solutions are enumerated.
 
 .. code:: python
 
@@ -85,10 +82,10 @@ In the following code block, all solutions can be enumerated.
             fo_assign = st.decode_assignment(int_assign) # first-order vars.
             ans = [st.object_to_vertex(fo_assign[key]) \
                                     for key in fo_assign.keys()]
-            print(ans) # list of vertices
+            print(ans) # solution
 
 The output is as follows.
-Note that `[7,6,1]` and `[7,1,6]` are distinguished because they diff
+Note that `[7,6,1]` and `[7,1,6]` are distinguished: they diff
 in the assignments to `x2` and `x3`.
 Solutions here mean the permutations of all independent sets of size ``3``.
 
@@ -137,11 +134,11 @@ Sampling Solutions of First-Order Expressible Property
 ------------------------------------------------------
 
 In the following code block, which uses ``mgr`` created in the previous code block, 
-a solution satisfying the current first-order formula ``f``, i.e. a vertex assignment to first-order
-variables ``x1``, ``x2``, and ``x3``, can be randomly sampled with ``unigen``, 
+solutions  are randomly
+generated using ``unigen``, 
 `UniGen approximately uniform sampler <https://github.com/meelgroup/unigen>`__ .
 The ``pygplib`` in itself does not provide any functionality of 
-solving encoded formulas, and is independent of ``unigen`` module.
+solving formulas, and is independent of ``unigen`` module.
 Please see `the instruction page <https://github.com/meelgroup/unigen>`__ 
 for the installation of ``unigen``.
 
@@ -149,7 +146,7 @@ for the installation of ``unigen``.
 
     from pyunigen import Sampler
 
-    num = 5 # target number of samples
+    num = 5 # number of samples
 
     c = Sampler()
     for i in range(mgr.get_ncls()):
@@ -161,7 +158,7 @@ for the installation of ``unigen``.
         fo_assign = st.decode_assignment(int_assign) # first-order vars.
         ans = [st.object_to_vertex(fo_assign[key]) \
                                     for key in fo_assign.keys()]
-        print(ans)
+        print(ans) # solution
 
 The output is as follows.
 
@@ -182,13 +179,12 @@ Solution sampling with `walksat <https://gitlab.com/HenryKautz/Walksat>`__ is as
 Solving Reconfiguration Problems of First-Order Property
 --------------------------------------------------------
 
-``examples/recon.py`` computes reconfiguration problems of vertex sets
-expressible with first-order formulas. A set of first-order formulas by
-which a reconfiguration problem instance is defined is supposed to be
-given in formula-file.
-This program uses ``pysat`` to compute a solution.
-Please see `the instruction page <https://pysathq.github.io/installation/>`__ 
-for the installation of ``pysat``.
+``examples/recon.py`` is a reconfiguration problem solver.
+It covers reconfiguration problems for first-order expresssible properties.
+A set of formulas as well as a graph are supposed to be given in files.
+This program uses Python modules ``pysat`` and ``argparser``.
+Please see `the instruction page of pysat <https://pysathq.github.io/installation/>`__ 
+and `that of argparse <https://github.com/ThomasWaldmann/argparse/>`__ .
 
 .. code:: shell-session
 
