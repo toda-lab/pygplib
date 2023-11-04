@@ -236,7 +236,7 @@ between first-order variables and CNF variables.
 
 Currently there are different ways for the initialization of ``GrSt`` objects,
 depending on the types of domain encoding: "edge encoding", 
-"clique encoding", and "direct encoding".
+"clique encoding", "direct encoding", and "log encoding".
 These encodings simply differ in the binary encoding of each object 
 in a domain.
 
@@ -310,6 +310,19 @@ corresponding bit ``01000``.
    # V4 |0 0 0 1 0|
    # V5 |0 0 0 0 1|
    st = GrSt(vertex_list, edge_list, encoding="direct", prefix="V")
+
+The forth example is the log-encoding.
+Each vertex is assigned with the binary representation of its index. 
+
+.. code:: python
+
+   # 
+   # V1 |0 0 0|
+   # V2 |1 0 0|
+   # V3 |0 1 0|
+   # V4 |1 1 0|
+   # V5 |0 0 1|
+   st = GrSt(vertex_list, edge_list, encoding="log", prefix="V")
 
 Note: Interpretation of Atoms
 -----------------------------

@@ -30,6 +30,14 @@ def test_init():
             "direct",  # in direct-encoding
         ),
         (
+            # vertex_list
+            [],  # empty graph!
+            # edge_list
+            [],
+            # encoding
+            "log",  # in log-encoding
+        ),
+        (
             #  V1---V2
             #  |
             #  V3   V4
@@ -70,6 +78,16 @@ def test_init():
             "direct", # in direct-encoding
         ),
         (
+            #  V1---V2
+            #
+            # vertex_list
+            [1,2],
+            # edge_list
+            [(1,2)],  # isolated edge
+            # encoding
+            "log", # in log-encoding
+        ),
+        (
             #  V1    V2
             #
             # vertex_list
@@ -78,6 +96,16 @@ def test_init():
             [],       # multiple isolated vertices
             # encoding
             "direct", # in direct-encoding
+        ),
+        (
+            #  V1    V2
+            #
+            # vertex_list
+            [1,2],
+            # edge_list
+            [],       # multiple isolated vertices
+            # encoding
+            "log", # in log-encoding
         ),
     ]
 
@@ -102,7 +130,7 @@ def test_init():
         (2,3),
         (3,5),
     ]
-    for encoding in ["edge", "clique", "direct"]:
+    for encoding in ["edge", "clique", "direct", "log"]:
         for prefix in ["V", "WW", "V12"]:
             NameMgr.clear()
             st = GrSt(vertex_list,edge_list,encoding=encoding)
@@ -222,6 +250,32 @@ def test_interpretation():
             "((((~ (x@1 & x@2)) & (~ (x@1 & x@3))) & (~ (x@2 & x@3))) & ((x@1 | x@2) | x@3))",
         ),
         (
+            #  | 1 2
+            #-------
+            # 1| 
+            # 2| 1
+            # 3| 0 1
+            #
+            # formula
+            "x=y",
+            # vertex list
+            [1,2,3],
+            # edge list
+            [(1,2), (2,3)],
+            # encoding
+            "log",
+            # first symbol
+            "x",
+            # second symbol
+            "V1",
+            # expected adjacency between first and second symbols
+            "((((((x@1 <-> F) & (x@2 <-> F)) & (F <-> T)) & (F <-> F)) | ((((x@1 <-> T) & (x@2 <-> F)) & (F <-> F)) & (F <-> F))) | (((((x@1 <-> T) & (x@2 <-> F)) & (F <-> F)) & (F <-> T)) | ((((x@1 <-> F) & (x@2 <-> T)) & (F <-> T)) & (F <-> F))))", # equiv. x@1 <-> T & x@2 <-> F, meaning x = V2
+            # expected equality between first and second symbols
+            "((x@1 <-> F) & (x@2 <-> F))",
+            # expected domain constraint of first symbol
+            "((((~ F) & (x@1 <-> F)) & (x@2 <-> T)) | (~ x@2))",
+        ),
+        (
             #  | 1 2 3
             #---------
             # 1| 1
@@ -246,6 +300,32 @@ def test_interpretation():
             "(((x@1 <-> y@1) & (x@2 <-> y@2)) & (x@3 <-> y@3))",
             # expected domain constraint of first symbol
             "((((~ (x@1 & x@2)) & (~ (x@1 & x@3))) & (~ (x@2 & x@3))) & ((x@1 | x@2) | x@3))",
+        ),
+        (
+            #  | 1 2
+            #-------
+            # 1| 
+            # 2| 1
+            # 3|   1
+            #
+            # formula
+            "x=y",
+            # vertex list
+            [1,2,3],
+            # edge list
+            [(1,2), (2,3)],
+            # encoding
+            "log",
+            # first symbol
+            "x",
+            # second symbol
+            "y",
+            # expected adjacency between first and second symbols
+            "((((((x@1 <-> F) & (x@2 <-> F)) & (y@1 <-> T)) & (y@2 <-> F)) | ((((x@1 <-> T) & (x@2 <-> F)) & (y@1 <-> F)) & (y@2 <-> F))) | (((((x@1 <-> T) & (x@2 <-> F)) & (y@1 <-> F)) & (y@2 <-> T)) | ((((x@1 <-> F) & (x@2 <-> T)) & (y@1 <-> T)) & (y@2 <-> F))))",
+            # expected equality between first and second symbols
+            "((x@1 <-> y@1) & (x@2 <-> y@2))",
+            # expected domain constraint of first symbol
+            "((((~ F) & (x@1 <-> F)) & (x@2 <-> T)) | (~ x@2))",
         ),
         (
             #  | 1 2 3
@@ -327,3 +407,136 @@ def test_interpretation():
         g = st.compute_domain_constraint(NameMgr.lookup_index(first_var))
         res = op.to_str(g)
         assert res == expected_domain, f"{res}, {expected_domain}"
+
+def test__compute_log_relation():
+    tests = [
+    (
+        # 1|00
+        # 2|10
+        # 3|01
+        # 4|11
+        #
+        # vertex_list
+        [1,2,3,4],
+        # expected
+        ((2,4),(3,4))
+    ),
+    (
+        # vertex_list
+        [],
+        # expected
+        (),
+    ),
+    (
+        # 1|0
+        # vertex_list
+        [1],
+        # expected
+        ()
+    ),
+    (
+        # 1|0
+        # 4|1
+        #
+        # vertex_list
+        [1,4],
+        # expected
+        ((4,),)
+    ),
+    (
+        # 1|00
+        # 4|10
+        # 3|01
+        #
+        # vertex_list
+        [1,4,3],
+        # expected
+        ((4,),(3,))
+    ),
+    (
+        # 1|00
+        # 4|10
+        # 3|01
+        # 2|11
+        #
+        # vertex_list
+        [1,4,3,2],
+        # expected
+        ((4,2),(3,2))
+    ),
+    (
+        # 1|000
+        # 4|100
+        # 3|010
+        # 2|110
+        # 5|001
+        #
+        # vertex_list
+        [1,4,3,2,5],
+        # expected
+        ((4,2),(3,2),(5,))
+    ),
+    (
+        # 1|000
+        # 4|100
+        # 3|010
+        # 2|110
+        # 5|001
+        # 7|101
+        #
+        # vertex_list
+        [1,4,3,2,5,7],
+        # expected
+        ((4,2,7),(3,2),(5,7))
+    ),
+    (
+        # 1|000
+        # 4|100
+        # 3|010
+        # 2|110
+        # 5|001
+        # 7|101
+        # 6|011
+        #
+        # vertex_list
+        [1,4,3,2,5,7,6],
+        # expected
+        ((4,2,7),(3,2,6),(5,7,6))
+    ),
+    (
+        # 1|000
+        # 4|100
+        # 3|010
+        # 2|110
+        # 5|001
+        # 7|101
+        # 6|011
+        # 8|111
+        #
+        # vertex_list
+        [1,4,3,2,5,7,6,8],
+        # expected
+        ((4,2,7,8),(3,2,6,8),(5,7,6,8))
+    ),
+    (
+        # 1|0000
+        # 4|1000
+        # 3|0100
+        # 2|1100
+        # 5|0010
+        # 7|1010
+        # 6|0110
+        # 8|1110
+        # 9|0001
+        #
+        # vertex_list
+        [1,4,3,2,5,7,6,8,9],
+        # expected
+        ((4,2,7,8),(3,2,6,8),(5,7,6,8),(9,))
+    ),
+    ]
+
+    for vertex_list, expected in tests:
+        st = GrSt(vertex_list, [], encoding="log")
+        res = st._compute_log_relation()
+        assert res == expected

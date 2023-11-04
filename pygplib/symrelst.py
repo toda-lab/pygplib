@@ -53,7 +53,7 @@ class SymRelSt(BaseRelSt):
             }
 
         Args:
-            objects: a domain of discource, a tuple of constant symbol indices
+            objects: a domain of discourse, a tuple of constant symbol indices
             relation: a tuple of (non-empty) relation instances, 
             where each instance need not be ordered.
         """

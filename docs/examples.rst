@@ -251,4 +251,4 @@ formula.
                            Specify maximum bound
      -t TRANS, --trans TRANS
                            Specify transition relation (TS or TJ)
-     -e ENCODING, --encoding ENCODING Specify ENCODING type (edge, clique, direct)
+     -e ENCODING, --encoding ENCODING Specify ENCODING type (edge, clique, direct, log)
