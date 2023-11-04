@@ -37,11 +37,11 @@ def test_compute_nnf():
     pass
 
 
-def test_reduce():
+def test_reduce_formula():
     pass
 
 
-def test_reduce_with_st():
+def test_reduce_formula_with_st():
     pass
 
 
@@ -87,5 +87,5 @@ def test_substitute():
         op.substitute(form, x, x)
 
 
-def test_propnize():
+def test_perform_boolean_encoding():
     pass

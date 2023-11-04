@@ -116,7 +116,7 @@ class AbsNeg(AbsExpr):
         ), "compute_cnf_step() assumes reduced formulas"
         super().compute_cnf_step(igen, assoc, cnf)
 
-    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
+    def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computation for this object."""
         if self.is_neg_term():
             g = assoc[id(self.get_operand(1))]
@@ -131,7 +131,7 @@ class AbsNeg(AbsExpr):
         if self.is_true_atom() or self.is_false_atom():
             assoc[id(self)] = self
             return
-        super().reduce_step(assoc, st)
+        super().reduce_formula_step(assoc, st)
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""

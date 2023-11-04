@@ -99,7 +99,7 @@ def test_read():
         assert res_str == expected, f"{res_str}, {expected}"
 
 
-def test_read_bipartite_order():
+def test_read_partitioning_order():
     tests = [
         ("T", "T"),
         (" T", "T"),
@@ -173,14 +173,14 @@ def test_read_bipartite_order():
     ]
 
     NameMgr.clear()
-    Fog.bipartite_order = True
+    Fog.partitioning_order = True
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
         res_str = op.to_str(res)
         assert res_str == expected, f"{res_str}, {expected}"
 
-    Fog.bipartite_order = False
+    Fog.partitioning_order = False
 
 
 def gen_form_rand(depth: int = 3) -> Fog:
@@ -468,7 +468,7 @@ def test_compute_nnf():
         assert res_str == expected, f"{res_str}, {expected}"
 
 
-def test_reduce():
+def test_reduce_formula():
     tests = [
         ("T", "T"),
         ("F", "F"),
@@ -496,12 +496,12 @@ def test_reduce():
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
-        res = op.reduce(res)
+        res = op.reduce_formula(res)
         res_str = op.to_str(res)
         assert res_str == expected, f"{res_str}, {expected}"
 
 
-def test_reduce_with_st():
+def test_reduce_formula_with_st():
     tests = [
         ("! [x] : T", "T"),
         ("! [x] : F", "F"),
@@ -567,7 +567,7 @@ def test_reduce_with_st():
 
         for test_str, expected in tests:
             res = Fog.read(test_str)
-            res = op.reduce(res,st)
+            res = op.reduce_formula(res,st)
             res_str = op.to_str(res)
             assert res_str == expected, f"{res_str}, {expected}"
 
@@ -700,7 +700,7 @@ def test_eliminate_qf():
         for test_str, expected in tests:
             res = Fog.read(test_str)
             res = op.eliminate_qf(res, st)
-            res = op.reduce(res, st)
+            res = op.reduce_formula(res, st)
             res_str = op.to_str(res)
             assert res_str == expected, f"{res_str}, {expected}"
 
@@ -731,7 +731,7 @@ def test_substitute():
         assert res_str == expected, f"{res_str}, {expected}"
 
 
-def test_propnize():
+def test_perform_boolean_encoding():
     tests = [
         ("T", "T"),
         ("F", "F"),
@@ -762,11 +762,11 @@ def test_propnize():
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
-        res = op.propnize(res, st)
+        res = op.perform_boolean_encoding(res, st)
         res_str = op.to_str(res)
         assert res_str == expected, f"{res_str}, {expected}"
 
-def test_propnize_bipartite_order():
+def test_perform_boolean_encoding_partitioning_order():
     tests = [
         ("T", "T"),
         ("F", "F"),
@@ -792,8 +792,8 @@ def test_propnize_bipartite_order():
     ]
 
     NameMgr.clear()
-    Fog.bipartite_order = True
-    Prop.bipartite_order = True
+    Fog.partitioning_order = True
+    Prop.partitioning_order = True
     #  | 1 2
     #--------
     # 1| 1 0
@@ -805,9 +805,9 @@ def test_propnize_bipartite_order():
 
     for test_str, expected in tests:
         res = Fog.read(test_str)
-        res = op.propnize(res, st)
+        res = op.perform_boolean_encoding(res, st)
         res_str = op.to_str(res)
         assert res_str == expected, f"{res_str}, {expected}"
 
-    Fog.bipartite_order = False
-    Prop.bipartite_order = False
+    Fog.partitioning_order = False
+    Prop.partitioning_order = False

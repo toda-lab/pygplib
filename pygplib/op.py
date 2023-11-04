@@ -1,7 +1,7 @@
 """Operations for traversing, manipulating, and converting formulas"""
 
 import sys
-import functools
+import warnings
 
 from .absexpr  import AbsExpr
 from .absexpr  import IndexGen
@@ -174,7 +174,7 @@ def compute_nnf(f: AbsExpr) -> AbsExpr:
     return _build_formula_posfix(t)
 
 
-def reduce(f: AbsExpr, st: BaseRelSt = None) -> AbsExpr:
+def reduce_formula(f: AbsExpr, st: BaseRelSt = None) -> AbsExpr:
     """Reduces it into as simple formula as possible, retaining equivalence.
 
     Quantifiers are not eliminated except for constant operands.
@@ -196,11 +196,28 @@ def reduce(f: AbsExpr, st: BaseRelSt = None) -> AbsExpr:
             continue
         if id(g) in assoc:
             continue
-        g.reduce_step(assoc, st)
+        g.reduce_formula_step(assoc, st)
 
     assert id(nnf) in assoc
     return assoc[id(nnf)]
 
+def reduce(f: AbsExpr, st: BaseRelSt = None) -> AbsExpr:
+    """Reduces it into as simple formula as possible, retaining equivalence.
+
+    Quantifiers are not eliminated except for constant operands.
+    Relational structure is not mandatory.
+    If relational structure is set, it reduces constant symbols
+    as much as possible.
+
+    Args:
+        f:  formula to be reduced
+
+    Note:
+        The behaviour of this method changes depending on structures.
+    """
+    warn_msg = "`reduce()` has been deprecated and will be removed in v3.0.0"
+    warnings.warn(warn_msg, UserWarning)
+    return reduce_formula(f, st)
 
 # First-Order Logic Methods
 def get_free_vars_and_consts(expr: AbsFo) -> tuple:
@@ -304,16 +321,10 @@ def _eliminate_qf_step(
 
         li = [substitute(g, d, bvar) for d in const_symb_tup]
 
-        if type(expr).bipartite_order:
-            if expr.is_forall_term():
-                acc = type(expr).binop_batch(type(expr).get_land_tag(), li)
-            else:
-                acc = type(expr).binop_batch(type(expr).get_lor_tag(), li)
+        if expr.is_forall_term():
+            acc = type(expr).binop_batch(type(expr).get_land_tag(), li)
         else:
-            if expr.is_forall_term():
-                acc = functools.reduce(lambda a, b: type(expr).land(a, b), li)
-            else:
-                acc = functools.reduce(lambda a, b: type(expr).lor(a, b), li)
+            acc = type(expr).binop_batch(type(expr).get_lor_tag(), li)
 
         assoc[id(expr)] = acc
         return
@@ -354,8 +365,7 @@ def eliminate_qf(expr: AbsFo, st: BaseRelSt) -> AbsFo:
     assert id(expr) in assoc
     return assoc[id(expr)]
 
-
-def propnize(f: AbsFo, st: BaseRelSt) -> Prop:
+def perform_boolean_encoding(f: AbsFo, st: BaseRelSt) -> Prop:
     """Converts a first-order formula into an equiv. propositional formula.
 
     Args:
@@ -381,10 +391,31 @@ def propnize(f: AbsFo, st: BaseRelSt) -> Prop:
             continue
         if id(g) in assoc:
             continue
-        g.propnize_step(assoc, st)
+        g.perform_boolean_encoding_step(assoc, st)
 
     assert id(qf_free) in assoc
     return assoc[id(qf_free)]
+
+
+def propnize(f: AbsFo, st: BaseRelSt) -> Prop:
+    """Converts a first-order formula into an equiv. propositional formula.
+
+    Args:
+        f:  first-order formula
+
+    Returns:
+        Prop:   propositional formula
+
+    Note:
+        The behaviour of this method changes depending on structures.
+
+    Raises:
+        Exception:  if no relational structure is set (i.e. None).
+    """
+    warn_msg = "`propnize()` has been deprecated and will be removed in v3.0.0"
+    warnings.warn(warn_msg, UserWarning)
+
+    return perform_boolean_encoding(f, st)
 
 
 
@@ -416,7 +447,7 @@ def compute_cnf(tup: tuple) -> tuple[int, int, tuple[tuple[int, ...], ...]]:
             an instance of Prop or its subclass"
         )
 
-    expr_list = [reduce(f) for f in tup]
+    expr_list = [reduce_formula(f) for f in tup]
 
     if type(tup[0]).false_const() in expr_list:
         return 0, 0, ((),)  # UNSAT

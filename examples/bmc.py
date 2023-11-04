@@ -181,13 +181,13 @@ class Bmc:
             else:
                 raise Exception(f"trans_type={trans_type} is undefined")
 
-        self._prop_ini = op.propnize(ini_expr, self.st)
+        self._prop_ini = op.perform_boolean_encoding(ini_expr, self.st)
         """propositional formula of initial state"""
-        self._prop_fin = op.propnize(fin_expr, self.st)
+        self._prop_fin = op.perform_boolean_encoding(fin_expr, self.st)
         """propositional formula of final state"""
-        self._prop_state = op.propnize(state_expr, self.st)
+        self._prop_state = op.perform_boolean_encoding(state_expr, self.st)
         """propositional formula of each state"""
-        self._prop_trans = op.propnize(trans_expr, self.st)
+        self._prop_trans = op.perform_boolean_encoding(trans_expr, self.st)
         """propositional formula of transition relations of adjacent states"""
 
         self._state_size = self._nof_free_vars * st.code_length
@@ -286,10 +286,10 @@ class Bmc:
             self._curr_vars, ini_expr, fin_expr, self.st
         )
         if ini_expr is not None:
-            self._prop_ini = op.propnize(ini_expr, self.st)
+            self._prop_ini = op.perform_boolean_encoding(ini_expr, self.st)
 
         if fin_expr is not None:
-            self._prop_fin = op.propnize(fin_expr, self.st)
+            self._prop_fin = op.perform_boolean_encoding(fin_expr, self.st)
 
         self._total_state_size = self._state_size * (bound + 1)
         self.nvar = self._total_state_size

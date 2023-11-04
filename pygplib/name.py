@@ -11,7 +11,7 @@ class NameMgr:
 
     Note:
         Names are added as soon as formulas are parsed,
-        propositional variables are produced by propnize().
+        propositional variables are produced by perform_boolean_encoding().
         Also names can be added manually through lookup_index(),
         but in such a case, it is not checked whether it has a correct format.
         Actually, the name manager examines only the leading character,

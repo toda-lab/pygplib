@@ -207,12 +207,12 @@ class Prop(AbsProp):
         )
         return EXPR.parse_string(formula_str, parse_all=True)[0]
 
-    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
+    def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computation for this object."""
         if self.is_var_atom():
             assoc[id(self)] = self
             return
-        super().reduce_step(assoc, st)
+        super().reduce_formula_step(assoc, st)
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""

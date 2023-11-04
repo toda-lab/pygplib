@@ -51,23 +51,23 @@ as being right associative, is recognized to be a different formula from
    fff = Fog.read("((~ edg(x1, x2)) & ((~ edg(x1, x3)) & (~ edg(x2, x3))))")
    assert f != fff
 
-Note: when the class variables ``bipartite_order`` of ``Prop`` class and  
+Note: when the class variables ``partitioning_order`` of ``Prop`` class and  
 ``Fog`` class are set ``True``, binary operations for these class objects 
 with equal priority are associated, recursively halving them.
 
 .. code:: python
 
-    Fog.bipartite_order = False
+    Fog.partitioning_order = False
     f = Fog.read("T & T & T & T")
     assert op.to_str(f) == "(((T & T) & T) & T)"
-    Fog.bipartite_order = True
+    Fog.partitioning_order = True
     f = Fog.read("T & T & T & T")
     assert op.to_str(f) == "((T & T) & (T & T))"
-    Fog.bipartite_order = False
+    Fog.partitioning_order = False
 
-Similarly, when ``Prop.bipartite_order`` is set ``True``, 
-``Prop`` objects computed by ``propnize()`` and ``compute_domain_constraint()`` 
-become syntactically different expressions.
+Similarly, when ``Prop.partitioning_order`` is set ``True``, 
+``Prop`` objects computed by ``perform_boolean_encoding()`` 
+and ``compute_domain_constraint()`` become syntactically different expressions.
 
 Name and Index of Symbol
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -160,14 +160,14 @@ are listed below.
 -  ``print_formula(f, stream=out, fmt=type)`` prints out formula object in
    stream (stdout if not given) in human-readable format (fmt=“str”) or
    DOT format (fmt=“dot”).
--  ``reduce(f)`` returns the result reduced from ``f`` with equivalent
+-  ``reduce_formula(f)`` returns the result reduced from ``f`` with equivalent
    transformations to make it be as simple as possible.
 -  ``get_free_vars_and_consts(f)`` returns a tuple of all
    free variables and constants of ``f``.
 -  ``get_free_vars(f)`` returns a tuple of the indices of all free
    variables of ``f``.
--  ``propnize(f, st)`` returns an equivalent propositional formula of
-   first-order formula ``f``, given graph structure. 
+-  ``perform_boolean_encoding(f, st)`` returns an equivalent propositional 
+   formula of first-order formula ``f``, given graph structure. 
    **Note: since this method performs quantifier elimination, 
    it would take much time and space if a
    formula contains quantifiers and a graph is large.**
@@ -181,16 +181,16 @@ are listed below.
 
 As mentioned, we assume that a graph has no loop, and hence the formula
 written as ``edg(x, x)`` is unsatisfiable.
-The formula is evaluated to false constant by ``op.reduce()`` just like
+The formula is evaluated to false constant by ``op.reduce_formula()`` just like
 ``eval()`` does in arithmetic expression.
 
 .. code:: python
 
    f = Fog.read("edg(x, x)")
    assert f != Fog.true_const() 
-   assert op.reduce(f) == Fog.false_const()
+   assert op.reduce_formula(f) == Fog.false_const()
 
-However, ``op.reduce()`` only performs a few equivalent transformations 
+However, ``op.reduce_formula()`` only performs a few equivalent transformations 
 and the resulted formula not always becomes irreducible, as demonstrated 
 in the following code block.
 
@@ -358,7 +358,7 @@ It is then converted to a tuple of propositional formulas
 
     f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3))")
 
-    g = op.propnize(f, st)
+    g = op.perform_boolean_encoding(f, st)
     tup  = tuple([st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(f)])
 

@@ -201,7 +201,7 @@ class AbsFo(AbsProp):
 
         assert False
 
-    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
+    def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce compuation for this object."""
 
         if self.is_forall_term():
@@ -248,7 +248,7 @@ class AbsFo(AbsProp):
             assoc[id(self)] = type(self).exists(g, bvar)
             return
 
-        super().reduce_step(assoc, st)
+        super().reduce_formula_step(assoc, st)
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""
