@@ -55,7 +55,7 @@ The encoding performed here is described in more details in
 
 .. code:: python
 
-    g = op.propnize(f, st)
+    g = op.perform_boolean_encoding(f, st)
     tup  = tuple([st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(f)])
     mgr = Cnf( (g, ) + tup , st)

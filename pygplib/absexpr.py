@@ -64,8 +64,8 @@ class AbsExpr:
     """
 
     _unique_table = {}
-    bipartite_order = False
-    """enables bipartite order of applying operations"""
+    partitioning_order = False
+    """changes order of applying binary operations (see binop_batch())"""
 
     # Tag-related Variables and Methods
     _ATOM_TAGS = ()
@@ -177,7 +177,8 @@ class AbsExpr:
         """
         return type(self)._to_key(self._tag, self._left, self._right, self._aux)
 
-    def compute_nnf_step(self, negated: bool, s: list[list], t: list[list]) -> None:
+    def compute_nnf_step(self, negated: bool, s: list[list], t: list[list])\
+        -> None:
         """Performs NNF compuation for this object."""
         assert False, f"{self.gen_key()}"
 
@@ -186,7 +187,7 @@ class AbsExpr:
         """Performs CNF compuation for this object."""
         assert False, f"{self.gen_key()}"
 
-    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
+    def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce compuation for this object."""
         assert False, f"{self.gen_key()}"
 

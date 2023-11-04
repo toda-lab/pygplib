@@ -33,7 +33,7 @@ The CNF encoded from ``f`` is generated to ``f.cnf`` in
 
     st = GrSt(vertex_list, edge_list, encoding="edge", prefix="V")
     f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) & (~ x1=x2) & (~ x1=x3) & (~ x2=x3)")
-    g = op.propnize(f, st)
+    g = op.perform_boolean_encoding(f, st)
 
     tup  = tuple([st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(f)])

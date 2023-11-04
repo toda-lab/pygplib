@@ -1,6 +1,6 @@
 """Class of first-order logic of graphs"""
 
-import functools
+import warnings
 
 import pyparsing as pp
 # Enables "packrat" parsing, which speedup parsing.
@@ -182,7 +182,7 @@ class Fog(AbsFo):
 
         super().get_free_vars_and_consts_pre_step(bound_vars, free_vars)
 
-    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
+    def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computatoin for this object."""
 
         if self.is_edg_atom():
@@ -215,11 +215,10 @@ class Fog(AbsFo):
             assoc[id(self)] = self
             return
 
-        super().reduce_step(assoc, st)
+        super().reduce_formula_step(assoc, st)
 
-    def propnize_step(self, assoc: dict, st: BaseRelSt) -> None:
-        """Performs propositionalization for this object."""
-
+    def perform_boolean_encoding_step(self, assoc: dict, st: BaseRelSt) -> None:
+        """Performs Boolean encoding for this object."""
         if self.is_edg_atom():
             atom = [self.get_atom_value(1), self.get_atom_value(2)]
             if atom[0] == atom[1]:
@@ -440,13 +439,13 @@ class Fog(AbsFo):
                     ANDOP,
                     2,
                     pp.opAssoc.LEFT,
-                    action_binop_batch if cls.bipartite_order else action_binop,
+                    action_binop_batch,
                 ),
                 (
                     OROP,
                     2,
                     pp.opAssoc.LEFT,
-                    action_binop_batch if cls.bipartite_order else action_binop,
+                    action_binop_batch,
                 ),
                 (IMPLIESOP, 2, pp.opAssoc.LEFT, action_binop),
                 (IFFOP, 2, pp.opAssoc.LEFT, action_binop),

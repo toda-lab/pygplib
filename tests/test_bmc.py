@@ -84,7 +84,7 @@ def test_bmc():
 
             assert solved or expected == "UNSAT"
 
-def test_bmc_bipartite_order():
+def test_bmc_partitioning_order():
     NameMgr.clear()
     N = 7
     #
@@ -99,7 +99,7 @@ def test_bmc_bipartite_order():
 
     for encoding in ["edge", "clique", "direct", "log"]:
         st = GrSt(vertex_list,edge_list,encoding=encoding)
-        Fog.bipartite_order = True
+        Fog.partitioning_order = True
 
         state_expr = Fog.read(
             "    (~ x1=x2 & ~ edg(x1,x2)) "
@@ -163,7 +163,7 @@ def test_bmc_bipartite_order():
                         break
 
             assert solved or expected == "UNSAT"
-    Fog.bipartite_order = False
+    Fog.partitioning_order = False
 
 def validate_ans(ans, n, edge_list, ini, fin, trans_type):
     assert sorted(ans[0]) == sorted(ini)

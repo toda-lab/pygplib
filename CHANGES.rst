@@ -3,6 +3,28 @@
 CHANGES
 =======
 
+Version 2.0.4 - 2023-11-04
+--------------------------
+
+Deprecated
+^^^^^^^^^^
+
+- propnize() and reduce() have been deprecated and will be removed in v3.0.0.
+
+
+Changed
+^^^^^^^
+
+- Renamed propnize() to perform_boolean_encoding().
+- Renamed reduce() to reduce_formula().
+- Renamed class variable bipartite_order to partitioning_order.
+
+Cleaned
+^^^^^^^
+
+- Changed code so that partitioning_order is not accessed outside binop_batch().
+
+
 Version 2.0.3 - 2023-11-04
 --------------------------
 

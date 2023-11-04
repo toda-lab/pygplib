@@ -1,6 +1,5 @@
 """Graph relational structure class"""
 
-import functools
 from typing import overload
 
 from .name     import NameMgr
@@ -10,6 +9,13 @@ from .ecc      import Ecc
 
 class GrSt(SymRelSt):
     """Manages graph structure for interpreting formulas (and index-mapping).
+
+    Attributes:
+        _EDGE_ENC: edge-encoding
+        _CLIQUE_ENC: clique-encoding
+        _DIRECT_ENC: direct-encoding
+        _LOG_ENC: log-encoding
+        _ENCODING: tuple of available encodings
 
     Example of Usage is as follows.
 
@@ -29,6 +35,12 @@ class GrSt(SymRelSt):
         assert NameMgr.lookup_name(i) == f"W{vertex_list[0]}"
 
     """
+    _EDGE_ENC   = "edge"
+    _CLIQUE_ENC = "clique"
+    _DIRECT_ENC = "direct"
+    _LOG_ENC    = "log"
+    _ENCODING   = (_EDGE_ENC, _CLIQUE_ENC, _DIRECT_ENC, _LOG_ENC,)
+
     def __init__(self, vertex_list: list, edge_list: list, \
                     encoding: str = "edge", prefix: str = "V"):
         """Initialize a graph structure.
@@ -47,7 +59,7 @@ class GrSt(SymRelSt):
             if edge[0] not in vertex_list\
                 or edge[1] not in vertex_list:
                 raise Exception(f"invalid vertex found: {edge}")
-        if encoding not in {"edge", "clique", "direct", "log"}:
+        if encoding not in type(self)._ENCODING:
             raise Exception(f"unsupported encoding type: {encoding}")
         if not (prefix.isalpha() and prefix.isupper()):
             raise Exception(\
@@ -70,14 +82,14 @@ class GrSt(SymRelSt):
         # vertex_to_object() and object_to_vertex() are now available!
 
         objects = self.vertex_to_object(self._verts)
-        if self._encoding == "edge":
+        if self._encoding == type(self)._EDGE_ENC:
             relation = self.vertex_to_object(self._edges)
-        elif self._encoding == "clique":
+        elif self._encoding == type(self)._CLIQUE_ENC:
             ecc = Ecc(self._verts, self._edges).compute_separating_ecc()
             relation = self.vertex_to_object(ecc)
-        elif self._encoding == "direct":
+        elif self._encoding == type(self)._DIRECT_ENC:
             relation = self.vertex_to_object(tuple([(v,) for v in self._verts]))
-        elif self._encoding == "log":
+        elif self._encoding == type(self)._LOG_ENC:
             relation = self.vertex_to_object(self._compute_log_relation())
         else:
             raise Exception(f"invalid encoding type: {self._encoding}")
@@ -116,7 +128,7 @@ class GrSt(SymRelSt):
             raise Exception(f"invalid vertex: {vertex}")
         name = self._prefix + f"{vertex}" 
         if not NameMgr.has_index(name):
-            raise Exception(f"vertex: {vertex} not yet registered to NameMgr.")
+            raise Exception(f"vertex: {vertex} not registered to NameMgr.")
         obj = NameMgr.lookup_index(name)
         return obj
 
@@ -225,15 +237,10 @@ class GrSt(SymRelSt):
         Returns:
             formula object of Prop class
         """
-        res = None
         li = Prop.bitwise_binop(Prop.get_iff_tag(), \
                                 self._get_lit_list(i), \
                                 self._get_lit_list(j))
-        if Prop.bipartite_order:
-            res = Prop.binop_batch(Prop.get_land_tag(), li)
-        else:
-            res = functools.reduce(lambda x,y: Prop.land(x,y), li)
-        return res
+        return Prop.binop_batch(Prop.get_land_tag(), li)
 
     def encode_edg(self, i: int, j: int) -> Prop:
         """Encodes predicate of adjacency relation, given two symbols.
@@ -245,16 +252,13 @@ class GrSt(SymRelSt):
             formula object of Prop class
         """
         res = None
-        if self._encoding in {"edge", "clique"}:
+        if self._encoding in (type(self)._EDGE_ENC, type(self)._CLIQUE_ENC):
             li = Prop.bitwise_binop(Prop.get_land_tag(), \
                                     self._get_lit_list(i), \
                                     self._get_lit_list(j))
-            if Prop.bipartite_order:
-                res = Prop.binop_batch(Prop.get_lor_tag(), li)
-            else:
-                res = functools.reduce(lambda x,y: Prop.lor(x,y), li)
+            res = Prop.binop_batch(Prop.get_lor_tag(), li)
             res = Prop.land(res, Prop.neg(self.encode_eq(i,j)))
-        elif self._encoding == "direct":
+        elif self._encoding == type(self)._DIRECT_ENC:
             lit_list = [self._get_lit_list(i),self._get_lit_list(j)]
             or_li = [Prop.lor(\
                     Prop.land(\
@@ -265,11 +269,8 @@ class GrSt(SymRelSt):
                         lit_list[1][self._object_to_pos(edge[0])]),\
                         )\
                         for edge in self.vertex_to_object(self._edges)]
-            if Prop.bipartite_order:
-                res = Prop.binop_batch(Prop.get_lor_tag(), or_li)
-            else:
-                res = functools.reduce(lambda x,y: Prop.lor(x,y), or_li)
-        elif self._encoding == "log":
+            res = Prop.binop_batch(Prop.get_lor_tag(), or_li)
+        elif self._encoding == type(self)._LOG_ENC:
             or_li = []
             for edge in self.vertex_to_object(self._edges):
                 li = Prop.bitwise_binop(Prop.get_iff_tag(), \
@@ -278,25 +279,16 @@ class GrSt(SymRelSt):
                 li += Prop.bitwise_binop(Prop.get_iff_tag(), \
                                 self._get_lit_list(j), \
                                 self._get_lit_list(edge[1]))
-                if Prop.bipartite_order:
-                    res0 = Prop.binop_batch(Prop.get_land_tag(), li)
-                else:
-                    res0 = functools.reduce(lambda x,y: Prop.land(x,y), li)
+                res0 = Prop.binop_batch(Prop.get_land_tag(), li)
                 li = Prop.bitwise_binop(Prop.get_iff_tag(), \
                                 self._get_lit_list(i), \
                                 self._get_lit_list(edge[1]))
                 li += Prop.bitwise_binop(Prop.get_iff_tag(), \
                                 self._get_lit_list(j), \
                                 self._get_lit_list(edge[0]))
-                if Prop.bipartite_order:
-                    res1 = Prop.binop_batch(Prop.get_land_tag(), li)
-                else:
-                    res1 = functools.reduce(lambda x,y: Prop.land(x,y), li)
+                res1 = Prop.binop_batch(Prop.get_land_tag(), li)
                 or_li.append(Prop.lor(res0,res1))
-            if Prop.bipartite_order:
-                res = Prop.binop_batch(Prop.get_lor_tag(), or_li)
-            else:
-                res = functools.reduce(lambda x,y: Prop.lor(x,y), or_li)
+            res = Prop.binop_batch(Prop.get_lor_tag(), or_li)
         else:
             raise Exception(f"NotImplementedError")
         return res
@@ -320,11 +312,11 @@ class GrSt(SymRelSt):
         if not NameMgr.is_variable(var):
             raise Exception(f"symbol index {var} is not a variable symbol")
         res = None
-        if self._encoding in ["edge", "clique"]:
+        if self._encoding in (type(self)._EDGE_ENC, type(self)._CLIQUE_ENC):
             res = self._compute_domain_constraint_DNF(var)
-        elif self._encoding == "direct":
+        elif self._encoding == type(self)._DIRECT_ENC:
             res = self._compute_domain_constraint_direct_encoding(var)
-        elif self._encoding == "log":
+        elif self._encoding == type(self)._LOG_ENC:
             res = self._compute_domain_constraint_log_encoding(var)
         else:
             raise Exception(f"NotImplementedError")
@@ -349,14 +341,8 @@ class GrSt(SymRelSt):
                 else Prop.neg(lits[pos]) \
                 for pos in range(self.code_length)
             ]
-            if Prop.bipartite_order:
-                dnf.append(Prop.binop_batch(Prop.get_land_tag(), term))
-            else:
-                dnf.append(functools.reduce(lambda x,y: Prop.land(x,y), term))
-        if Prop.bipartite_order:
-            return Prop.binop_batch(Prop.get_lor_tag(), dnf)
-        else:
-            return functools.reduce(lambda a, b: Prop.lor(a, b), dnf)
+            dnf.append(Prop.binop_batch(Prop.get_land_tag(), term))
+        return Prop.binop_batch(Prop.get_lor_tag(), dnf)
 
     def _compute_domain_constraint_direct_encoding(self, index: int) -> Prop:
         """Computes domain constraint for a first-order variable
@@ -367,24 +353,18 @@ class GrSt(SymRelSt):
         Returns:
             formula object of Prop class
         """
-        if self._encoding != "direct":
+        if self._encoding != type(self)._DIRECT_ENC:
             raise Exception(\
             f"encoding type {self._encoding} does not match with this method")
 
         lits = self._get_lit_list(index)
         # at least one constraint
-        if Prop.bipartite_order:
-            at_least_one = Prop.binop_batch(Prop.get_lor_tag(), lits)
-        else:
-            at_least_one = functools.reduce(lambda x,y: Prop.lor(x,y), lits)
+        at_least_one = Prop.binop_batch(Prop.get_lor_tag(), lits)
         # at most one constraint
         term = [Prop.neg(Prop.land(lits[i],lits[j])) \
                     for i in range(len(lits))\
                         for j in range(i+1,len(lits))]
-        if Prop.bipartite_order:
-            at_most_one = Prop.binop_batch(Prop.get_land_tag(), term)
-        else:
-            at_most_one = functools.reduce(lambda x,y: Prop.land(x,y), term)
+        at_most_one = Prop.binop_batch(Prop.get_land_tag(), term)
         return Prop.land(at_most_one, at_least_one)
 
     def _compute_domain_constraint_log_encoding(self, index: int) -> Prop:
@@ -396,7 +376,7 @@ class GrSt(SymRelSt):
         Returns:
             formula object of Prop class
         """
-        if self._encoding != "log":
+        if self._encoding != type(self)._LOG_ENC:
             raise Exception(\
             f"encoding type {self._encoding} does not match with this method")
         smaller_li = [Prop.false_const()]
@@ -413,14 +393,8 @@ class GrSt(SymRelSt):
                 li += Prop.bitwise_binop(Prop.get_iff_tag(),\
                                         smaller_li[1:],\
                                         greater_li[1:])
-                if Prop.bipartite_order:
-                    acc.append(Prop.binop_batch(Prop.get_land_tag(), li))
-                else:
-                    acc.append(functools.reduce(lambda x,y: Prop.land(x,y), li))
+                acc.append(Prop.binop_batch(Prop.get_land_tag(), li))
             smaller_li = smaller_li[1:]
             greater_li = greater_li[1:]
-        if Prop.bipartite_order:
-            res = Prop.binop_batch(Prop.get_lor_tag(), acc)
-        else:
-            res = functools.reduce(lambda x,y: Prop.lor(x,y), acc)
+        res = Prop.binop_batch(Prop.get_lor_tag(), acc)
         return res

@@ -69,7 +69,7 @@ class Ecc:
             i = random.randint(0,len(U)-1)
             return U[i][0], U[i][1]
         else:
-            raise Exception(f"variant {variant} not yet implemented")
+            raise Exception(f"NotImplementedError: variant {variant}")
 
     def _extract_node(self, P: set, Q: list, variant: str = "r")\
         -> int:
@@ -90,7 +90,7 @@ class Ecc:
             pos = random.randint(0,len(P)-1)
             return list(P)[pos]
         else:
-            raise Exception(f"variant {variant} not yet implemented")
+            raise Exception(f"NotImplementedError: variant {variant}")
 
     def _find_clique_covering(self, u: int, v:int, U: list, \
         variant: str = "r") -> tuple:
@@ -166,7 +166,7 @@ class Ecc:
             i = random.randint(0,len(U)-1)
             return U[i][0], U[i][1]
         else:
-            raise Exception(f"variant {variant} not yet implemented")
+            raise Exception(f"NotImplementedError: variant {variant}")
 
     def _find_clique_separating(self, u: int, v:int, U: list, \
         variant: str = "r") -> tuple:

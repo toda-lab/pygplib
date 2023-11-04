@@ -1,5 +1,8 @@
 """Class of propositional logic with true and false and no variable"""
 
+import warnings
+import functools
+
 from .absexpr import AbsExpr
 from .absexpr import IndexGen
 from .absneg  import AbsNeg
@@ -111,16 +114,22 @@ class AbsProp(AbsNeg):
 
     @classmethod
     def binop_batch(cls, tag: str, expr_li: list) -> AbsExpr:
-        """Gets the formula obtained from a list of formulas by recursively
-        applying operation to the left and the right halves of the list.
+        """Gets the formula obtained from a list of formulas by applying
+        operations.
+
+        If partitioning_order is set True, operations are recusively applied 
+        by partitioning operands into the left and the right halves.
+        Otherwise, operations are iteratively applied in a left-associative way. 
 
         Args:
             tag:    tag of AND or OR operation
             expr_li:   list of operands
         """
+        if tag not in [cls.get_land_tag(), cls.get_lor_tag()]:
+            raise Exception(\
+                f"Operation specified by {tag} cannot be done in batch.")
         if len(expr_li) == 0:
             raise ValueError("Expression list is empty.")
-        assert tag in [cls.get_land_tag(), cls.get_lor_tag()]
 
         def binop_batch_rec(tag: str, expr_li: list, begin: int, end: int) -> AbsExpr:
             assert begin < end
@@ -137,7 +146,11 @@ class AbsProp(AbsNeg):
             right = binop_batch_rec(tag, expr_li, mid, end)
             return type(left).binop(tag, left, right)
 
-        return binop_batch_rec(tag, expr_li, 0, len(expr_li))
+        if cls.partitioning_order:
+            res = binop_batch_rec(tag, expr_li, 0, len(expr_li))
+        else:
+            res = functools.reduce(lambda x,y: cls.binop(tag, x,y), expr_li)
+        return res
 
     @classmethod
     def bitwise_binop(cls, tag: str, left_li: list, right_li: list) -> AbsExpr:
@@ -263,7 +276,7 @@ class AbsProp(AbsNeg):
         ), "compute_cnf_step() assumes reduced formulas"
         super().compute_cnf_step(igen, assoc, cnf)
 
-    def reduce_step(self, assoc: dict, st: BaseRelSt) -> None:
+    def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computation for this object."""
         if self.is_land_term():
             left = assoc[id(self.get_operand(1))]
@@ -319,7 +332,7 @@ class AbsProp(AbsNeg):
             assoc[id(self)] = type(self).lor(left, right)
             return
 
-        super().reduce_step(assoc, st)
+        super().reduce_formula_step(assoc, st)
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""
