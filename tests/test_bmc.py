@@ -18,7 +18,7 @@ def test_bmc():
     vertex_list = [1,2,3,4,5,6,7]
     edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]
 
-    for encoding in ["edge", "clique", "direct"]:
+    for encoding in ["edge", "clique", "direct", "log"]:
         st = GrSt(vertex_list,edge_list,encoding=encoding)
 
         state_expr = Fog.read(
@@ -69,19 +69,18 @@ def test_bmc():
 
                 cnf = CNF(from_clauses=bmc.cnf)
                 with Solver(bootstrap_with=cnf) as solver:
-                    if solver.solve():
+                    for m in solver.enum_models():
                         m = solver.get_model()
-                    else:
-                        continue
-                ans = []
-                for assign in bmc.decode(m):
-                    res = st.decode_assignment(assign)
-                    ans.append([st.object_to_vertex(res[key]) \
-                                    for key in sorted(res.keys())])
-                validate_ans(ans, N, edge_list, test_ini, test_fin, test_trans)
-                solved = True
-                assert expected == "SAT"
-                break
+                        ans = []
+                        for assign in bmc.decode(m):
+                            res = st.decode_assignment(assign)
+                            ans.append([st.object_to_vertex(res[key]) \
+                                        for key in sorted(res.keys())])
+                        validate_ans(ans, N, edge_list, test_ini, test_fin, test_trans)
+                        solved = True
+                        assert expected == "SAT"
+                    if solved:
+                        break
 
             assert solved or expected == "UNSAT"
 
@@ -98,7 +97,7 @@ def test_bmc_bipartite_order():
     vertex_list = [1,2,3,4,5,6,7]
     edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]
 
-    for encoding in ["edge", "clique", "direct"]:
+    for encoding in ["edge", "clique", "direct", "log"]:
         st = GrSt(vertex_list,edge_list,encoding=encoding)
         Fog.bipartite_order = True
 
@@ -150,19 +149,18 @@ def test_bmc_bipartite_order():
 
                 cnf = CNF(from_clauses=bmc.cnf)
                 with Solver(bootstrap_with=cnf) as solver:
-                    if solver.solve():
+                    for m in solver.enum_models():
                         m = solver.get_model()
-                    else:
-                        continue
-                ans = []
-                for assign in bmc.decode(m):
-                    res = st.decode_assignment(assign)
-                    ans.append([st.object_to_vertex(res[key]) \
-                                    for key in sorted(res.keys())])
-                validate_ans(ans, N, edge_list, test_ini, test_fin, test_trans)
-                solved = True
-                assert expected == "SAT"
-                break
+                        ans = []
+                        for assign in bmc.decode(m):
+                            res = st.decode_assignment(assign)
+                            ans.append([st.object_to_vertex(res[key]) \
+                                        for key in sorted(res.keys())])
+                        validate_ans(ans, N, edge_list, test_ini, test_fin, test_trans)
+                        solved = True
+                        assert expected == "SAT"
+                    if solved:
+                        break
 
             assert solved or expected == "UNSAT"
     Fog.bipartite_order = False

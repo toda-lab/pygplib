@@ -3,6 +3,20 @@
 CHANGES
 =======
 
+Version 2.0.3 - 2023-11-04
+--------------------------
+
+Added
+^^^^^
+
+- Implemented log-encoding in GrSt class.
+- Added tests for log-encoding.
+
+Changed
+^^^^^^^
+
+- Changed test_bmc() to validation for all solutions.
+
 Version 2.0.2 - 2023-10-31
 --------------------------
 

@@ -35,9 +35,8 @@ class GrSt(SymRelSt):
 
         Args:
             vertex_list: list of distinct vertices in an arbitrary order
-            edge_list: list of distinct edges (pairs of vertices) in an
-            arbitrary order
-            encoding: encoding type ("edge", "clique", "direct", "log")
+            edge_list: list of distinct edges in an arbitrary order
+            encoding: type of encoding ("edge", "clique", "direct", "log")
             prefix: prefix of vertex name, which must be uppercase.
         """
         for edge in edge_list:
@@ -48,7 +47,7 @@ class GrSt(SymRelSt):
             if edge[0] not in vertex_list\
                 or edge[1] not in vertex_list:
                 raise Exception(f"invalid vertex found: {edge}")
-        if encoding not in {"edge", "clique", "direct"}:
+        if encoding not in {"edge", "clique", "direct", "log"}:
             raise Exception(f"unsupported encoding type: {encoding}")
         if not (prefix.isalpha() and prefix.isupper()):
             raise Exception(\
@@ -79,18 +78,39 @@ class GrSt(SymRelSt):
         elif self._encoding == "direct":
             relation = self.vertex_to_object(tuple([(v,) for v in self._verts]))
         elif self._encoding == "log":
-            raise Exception("not-yet-implemented")
+            relation = self.vertex_to_object(self._compute_log_relation())
         else:
             raise Exception(f"invalid encoding type: {self._encoding}")
         super().__init__(objects, relation)
+
+    def _compute_log_relation(self) -> tuple:
+        """Computes relation for log-encoding.
+
+        Computes relation for log-encoding, where each relation instance means
+        whether it is possible to divide by a power of 2.
+
+        Returns:
+            relation for log-encoding, where each relation instance consists of
+            vertices.
+        """
+        res = []
+        N = len(self._verts)
+        n = 1
+        while n < N:
+            res.append(tuple(\
+                [self._verts[j] for i in range(1,(N-1)//n+1,2)\
+                                for j in range(n*i, min(n*(i+1),N))]\
+                                    ))
+            n *= 2
+        return tuple(res)
 
     def vertex_to_object_int(self, vertex: int) -> int:
         """Converts vertex to object (constant symbol index).
 
         Args:
-            tup: tuple of vertices
+            vertex: a domain object (a constant symbol index)
         Returns:
-            tuple of domain objects (constant symbol indices)
+            a domain object (a constant symbol index)
         """
         if vertex not in self._verts:
             raise Exception(f"invalid vertex: {vertex}")
@@ -235,22 +255,50 @@ class GrSt(SymRelSt):
                 res = functools.reduce(lambda x,y: Prop.lor(x,y), li)
             res = Prop.land(res, Prop.neg(self.encode_eq(i,j)))
         elif self._encoding == "direct":
-            lits = [self._get_lit_list(i),self._get_lit_list(j)]
-            li = [Prop.lor(\
+            lit_list = [self._get_lit_list(i),self._get_lit_list(j)]
+            or_li = [Prop.lor(\
                     Prop.land(\
-                        lits[0][self._object_to_pos(edge[0])],\
-                        lits[1][self._object_to_pos(edge[1])]),\
+                        lit_list[0][self._object_to_pos(edge[0])],\
+                        lit_list[1][self._object_to_pos(edge[1])]),\
                     Prop.land(\
-                        lits[0][self._object_to_pos(edge[1])],\
-                        lits[1][self._object_to_pos(edge[0])]),\
+                        lit_list[0][self._object_to_pos(edge[1])],\
+                        lit_list[1][self._object_to_pos(edge[0])]),\
                         )\
                         for edge in self.vertex_to_object(self._edges)]
             if Prop.bipartite_order:
-                res = Prop.binop_batch(Prop.get_lor_tag(), li)
+                res = Prop.binop_batch(Prop.get_lor_tag(), or_li)
             else:
-                res = functools.reduce(lambda x,y: Prop.lor(x,y), li)
+                res = functools.reduce(lambda x,y: Prop.lor(x,y), or_li)
+        elif self._encoding == "log":
+            or_li = []
+            for edge in self.vertex_to_object(self._edges):
+                li = Prop.bitwise_binop(Prop.get_iff_tag(), \
+                                self._get_lit_list(i), \
+                                self._get_lit_list(edge[0]))
+                li += Prop.bitwise_binop(Prop.get_iff_tag(), \
+                                self._get_lit_list(j), \
+                                self._get_lit_list(edge[1]))
+                if Prop.bipartite_order:
+                    res0 = Prop.binop_batch(Prop.get_land_tag(), li)
+                else:
+                    res0 = functools.reduce(lambda x,y: Prop.land(x,y), li)
+                li = Prop.bitwise_binop(Prop.get_iff_tag(), \
+                                self._get_lit_list(i), \
+                                self._get_lit_list(edge[1]))
+                li += Prop.bitwise_binop(Prop.get_iff_tag(), \
+                                self._get_lit_list(j), \
+                                self._get_lit_list(edge[0]))
+                if Prop.bipartite_order:
+                    res1 = Prop.binop_batch(Prop.get_land_tag(), li)
+                else:
+                    res1 = functools.reduce(lambda x,y: Prop.land(x,y), li)
+                or_li.append(Prop.lor(res0,res1))
+            if Prop.bipartite_order:
+                res = Prop.binop_batch(Prop.get_lor_tag(), or_li)
+            else:
+                res = functools.reduce(lambda x,y: Prop.lor(x,y), or_li)
         else:
-            raise Exception(f"not yet implemented")
+            raise Exception(f"NotImplementedError")
         return res
 
     def encode_T(self) -> Prop: 
@@ -276,6 +324,8 @@ class GrSt(SymRelSt):
             res = self._compute_domain_constraint_DNF(var)
         elif self._encoding == "direct":
             res = self._compute_domain_constraint_direct_encoding(var)
+        elif self._encoding == "log":
+            res = self._compute_domain_constraint_log_encoding(var)
         else:
             raise Exception(f"NotImplementedError")
         return res
@@ -336,3 +386,41 @@ class GrSt(SymRelSt):
         else:
             at_most_one = functools.reduce(lambda x,y: Prop.land(x,y), term)
         return Prop.land(at_most_one, at_least_one)
+
+    def _compute_domain_constraint_log_encoding(self, index: int) -> Prop:
+        """Computes domain constraint for a first-order variable
+        (log-encoding version).
+
+        Args:
+            var: index of a first-order variable symbol
+        Returns:
+            formula object of Prop class
+        """
+        if self._encoding != "log":
+            raise Exception(\
+            f"encoding type {self._encoding} does not match with this method")
+        smaller_li = [Prop.false_const()]
+        greater_li = [Prop.true_const()]
+
+        smaller_li += self._get_lit_list(index)
+        greater_li += self._get_lit_list(\
+                            self.vertex_to_object(self._verts[-1]))
+
+        acc = []
+        while len(smaller_li) > 0:
+            if greater_li[0] == Prop.true_const():
+                li = [Prop.neg(smaller_li[0])]
+                li += Prop.bitwise_binop(Prop.get_iff_tag(),\
+                                        smaller_li[1:],\
+                                        greater_li[1:])
+                if Prop.bipartite_order:
+                    acc.append(Prop.binop_batch(Prop.get_land_tag(), li))
+                else:
+                    acc.append(functools.reduce(lambda x,y: Prop.land(x,y), li))
+            smaller_li = smaller_li[1:]
+            greater_li = greater_li[1:]
+        if Prop.bipartite_order:
+            res = Prop.binop_batch(Prop.get_lor_tag(), acc)
+        else:
+            res = functools.reduce(lambda x,y: Prop.lor(x,y), acc)
+        return res

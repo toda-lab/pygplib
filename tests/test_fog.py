@@ -562,7 +562,7 @@ def test_reduce_with_st():
     vertex_list = [1,2,3,4,5]
     edge_list = [(1,2),(1,3),(2,3),(3,4),(3,5),(4,5)]
 
-    for encoding in ["edge", "clique", "direct"]:
+    for encoding in ["edge", "clique", "direct", "log"]:
         st = GrSt(vertex_list, edge_list, encoding=encoding)
 
         for test_str, expected in tests:
@@ -668,7 +668,7 @@ def test_eliminate_qf():
     vertex_list = [1,2,3,4,5]
     edge_list = [(1,2),(1,3),(2,3),(3,4),(3,5),(4,5)]
 
-    for encoding in ["edge", "clique", "direct"]:
+    for encoding in ["edge", "clique", "direct", "log"]:
         st = GrSt(vertex_list, edge_list, encoding=encoding)
         for test_str, expected in tests:
             res = Fog.read(test_str)
@@ -695,7 +695,7 @@ def test_eliminate_qf():
         ("? [x] : ! [y] : (x = y | edg(x, y))", "T"),
     ]
 
-    for encoding in ["edge", "clique", "direct"]:
+    for encoding in ["edge", "clique", "direct", "log"]:
         st = GrSt(vertex_list, edge_list, encoding=encoding)
         for test_str, expected in tests:
             res = Fog.read(test_str)

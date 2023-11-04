@@ -26,7 +26,7 @@ def get_option():
         "--encoding",
         type=str,
         default="edge",
-        help="Specify ECC type (edge, clique, direct)",
+        help="Specify ENCODING type (edge, clique, direct, log)",
     )
     ap.add_argument("arg1", help="dimacs graph file")
     ap.add_argument("arg2", help="formula file")
