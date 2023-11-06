@@ -3,6 +3,15 @@
 CHANGES
 =======
 
+Version 2.1.0 - 2023-11-06
+--------------------------
+
+Added
+^^^^^
+
+- Made it possible for constructor of Cnf to accept not only tuple but also list as input.
+
+
 Version 2.0.5 - 2023-11-04
 --------------------------
 

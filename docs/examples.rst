@@ -10,7 +10,7 @@ In the following code block, a graph structure is created.
 The first-order formula of an independent set of size ``3``, 
 written as 
 ``(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) & (~ x1=x2) & (~ x1=x3) & (~
-x2=x3)``, is converted into a tuple of ``Prop`` formula objects ``(g, ) + tup``, 
+x2=x3)``, is converted into a list of ``Prop`` formula objects ``[g, ] + li``, 
 with which ``Cnf`` object ``mgr`` is created.
 The CNF encoded from ``f`` is generated to ``f.cnf`` in 
 `DIMACS CNF format <http://www.satcompetition.org/2009/format-benchmarks2009.html>`__ .
@@ -33,9 +33,9 @@ The CNF encoded from ``f`` is generated to ``f.cnf`` in
     f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) & (~ x1=x2) & (~ x1=x3) & (~ x2=x3)")
     g = op.perform_boolean_encoding(f, st)
 
-    tup  = tuple([st.compute_domain_constraint(v) \
-                    for v in op.get_free_vars(f)])
-    mgr = Cnf( (g, ) + tup )
+    li  = [st.compute_domain_constraint(v) \
+                    for v in op.get_free_vars(f)]
+    mgr = Cnf( [g, ] + li )
     with open("f.cnf","w") as out:
         mgr.write(stream=out)
 

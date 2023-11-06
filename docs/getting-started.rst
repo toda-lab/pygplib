@@ -45,10 +45,10 @@ details.
 
 Perform Boolean encoding for ``f`` and 
 compute the domain constraint for each free variable of ``f``.
-The tuple ``(g, ) + tup`` consists of propositional formulas such that 
-``f`` is satisfiable in G if and only if the conjunction of propositional formulas is
+The list ``[g, ] + li`` consists of propositional formulas such that 
+``f`` is satisfiable in ``G`` if and only if the conjunction of propositional formulas is
 satisfiable.
-Convert ``(g, ) + tup`` to a canonical form, called a *Conjunctive Normal Form*
+Convert ``[g, ] + li`` to a canonical form, called a *Conjunctive Normal Form*
 (*CNF* for short) by creating a Cnf object, ``mgr``.
 The Cnf object is a manager for the converted CNF.
 The encodings performed in this code block are described in more details in :ref:`EncodingFirstOrderFormula`.
@@ -56,9 +56,9 @@ The encodings performed in this code block are described in more details in :ref
 .. code:: python
 
     g = op.perform_boolean_encoding(f, st)
-    tup  = tuple([st.compute_domain_constraint(v) \
-                    for v in op.get_free_vars(f)])
-    mgr = Cnf( (g, ) + tup )
+    li  = [st.compute_domain_constraint(v) \
+                    for v in op.get_free_vars(f)]
+    mgr = Cnf( [g, ] + li )
 
 Generate a CNF formula to ``f.cnf`` in `DIMACS CNF format
 <http://www.satcompetition.org/2009/format-benchmarks2009.html>`__ .

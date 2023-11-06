@@ -333,8 +333,8 @@ Let us now describe how first-order formulas can be encoded into CNFs.
 
 In the following code block, a graph structure is created.
 A first-order formula is parsed and constructed.
-It is then converted to a tuple of propositional formulas 
-``Prop`` ``(g, ) + tup``,  with which ``Cnf`` object ``mgr`` is created.
+It is then converted to a list of propositional formulas 
+``Prop`` ``[g, ] + li``,  with which ``Cnf`` object ``mgr`` is created.
 
 .. code:: python
 
@@ -347,25 +347,25 @@ It is then converted to a tuple of propositional formulas
     f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3))")
 
     g = op.perform_boolean_encoding(f, st)
-    tup  = tuple([st.compute_domain_constraint(v) \
-                    for v in op.get_free_vars(f)])
+    li  = [st.compute_domain_constraint(v) \
+                    for v in op.get_free_vars(f)]
 
-    mgr = Cnf( (g, ) + tup , st=st)
+    mgr = Cnf( [g, ] + li , st=st)
     # If the 2nd argument is given, the extra information of
     # encoding will be added to the header of DIMACS CNF file.
 
 We will describe this code block in more details in the following sections
 in terms of the Boolean encoding part (the computation of
-``g`` and ``tup``) and the CNF encoding part.
+``g`` and ``li``) and the CNF encoding part.
 
 Boolean Encoding
 ^^^^^^^^^^^^^^^^
 
-We will describe why we consider not only ``g`` but also ``tup`` in the
+We will describe why we consider not only ``g`` but also ``li`` in the
 previous code block. Remember that a first-order variable runs over
 vertices (valid binary codes), in other words, a variable never runs
 outside domain. To impose this (called *domain
-constraints*) on first-order variables, we need to add ``tup``, a tuple of
+constraints*) on first-order variables, we need to add ``li``, a list of
 propositional formula objects, one for each first-order variable.
 
 Let us visualize a domain constraint for a better understanding.
@@ -373,7 +373,7 @@ Let us visualize a domain constraint for a better understanding.
 .. code:: python
 
     with open("t1.dot","w") as out:
-        op.print_formula(tup[0],stream=out,fmt="dot")
+        op.print_formula(li[0],stream=out,fmt="dot")
 
 .. code:: shell-session
 
@@ -385,14 +385,14 @@ Let us visualize a domain constraint for a better understanding.
 The above image depicts the domain constraint for ``x3`` in clique-encoding, 
 where ``x3@1``, ``x3@2``, ``x3@3``, and ``x3@4`` represents propositional variables 
 representing the binary code of ``x3``.
-The ``tup`` consists of the constraints for ``x1``, ``x2``, and ``x3``, while
+The ``li`` consists of the constraints for ``x1``, ``x2``, and ``x3``, while
 ``g`` represents the propositional formula for ``f`` but excluding domain constraints.
 
 .. image:: ../data/g.png
    :alt: g.png
 
 In summary, the propositional formula encoded from ``f`` amounts to the
-conjunction of ``g``, ``tup[0],`` ``tup[1]``, and ``tup[2]``.
+conjunction of ``g``, ``li[0],`` ``li[1]``, and ``li[2]``.
 
 Note that domain constraints in one encoding are logically equivalent but
 different as formulas from those in another encoding.
@@ -402,13 +402,13 @@ CNF Encoding
 ^^^^^^^^^^^^
 
 When a ``Cnf`` object is initialized, 
-the tuple of propositional formulas given as input is converted to CNF.
+the list of propositional formulas given as input is converted to CNF.
 A ``Cnf`` object is able to generate CNF in DIMACS CNF format.
 It should be noted that 
 the indices of CNF variables in the output are changed so that there is no
 missing index.
 A ``Cnf`` object manages the index mapping between 
-*internal* CNF variables (those in propositional formulas in ``(g, ) + tup``)
+*internal* CNF variables (those in propositional formulas in ``[g, ] + li``)
 and *external* CNF variables (those in the output DIMACS CNF).
 
 A ``Cnf`` object provides the following instance methods.

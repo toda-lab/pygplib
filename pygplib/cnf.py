@@ -1,23 +1,32 @@
 """CNF Converter Class"""
 
 import sys
+from typing import overload
 
 from .name import NameMgr
 from .baserelst import BaseRelSt
 from . import op
 
 class Cnf:
-    """CNF Converter Class"""
 
+    """CNF Converter Class"""
+    @overload
+    def __init__(self, expr_li: list, st: BaseRelSt = None):
+      pass
+
+    @overload
     def __init__(self, expr_tup: tuple, st: BaseRelSt = None):
-        """Constructs CNF from tuple of formulas with Tseitin transformation.
+      pass
+
+    def __init__(self, exprs, st = None):
+        """Constructs CNF from tuple/list of formulas with Tseitin transformation.
 
         Note:
-            A tuple of propositional formulas is considered as conjunction
+            A tuple/list of propositional formulas is considered as conjunction
             of propositional formulas.
 
         Args:
-            expr_tup: tuple of propositional formulas
+            exprs: tuple/list of propositional formulas
             st: relational structure object (If given, coding information will
             be added to the header of DIMACS CNF)
         """
@@ -30,9 +39,9 @@ class Cnf:
         self._inv_list = []
         """list to find original index from encoded index."""
 
-        self._expr_tup = expr_tup
+        self._expr_tup = tuple(exprs)
         """tuple of propositional formulas"""
-        base, naux, cnf = op.compute_cnf(expr_tup)
+        base, naux, cnf = op.compute_cnf(self._expr_tup)
 
         if cnf == ():
             self._nvar = 0
