@@ -35,7 +35,23 @@ Please cite the following paper if you use ``pygplib``:
 
 ::
 
-   Takahisa Toda, Takehiro Ito, Jun Kawahara, Takehide Soh, Akira Suzuki, Junichi Teruyama, Solving Reconfiguration Problems of First-Order Expressible Properties of Graph Vertices with Boolean Satisfiability, The 35th IEEE International Conference on Tools with Artificial Intelligence (ICTAI 2023), accepted.
+  @INPROCEEDINGS {10356599,
+  author = {T. Toda and T. Ito and J. Kawahara and T. Soh and A. Suzuki and J. Teruyama},
+  booktitle = {2023 IEEE 35th International Conference on Tools with Artificial Intelligence (ICTAI)},
+  title = {Solving Reconfiguration Problems of First-Order Expressible Properties of Graph Vertices with Boolean Satisfiability},
+  year = {2023},
+  volume = {},
+  issn = {},
+  pages = {294-302},
+  abstract = {This paper presents a unified framework for capturing a variety of graph reconfiguration problems in terms of firstorder expressible properties and proposes a Boolean encoding for formulas in the first-order logic of graphs based on the exploitation of fundamental properties of graphs. We show that a variety of graph reconfiguration problems captured in our framework can be computed in a unified way by combining our encoding and Boolean satisfiability solver in a bounded model checking approach but allowing us to use quantifiers and predicates on vertices to express reconfiguration properties.},
+  keywords = {automata;model checking;encoding;artificial intelligence},
+  doi = {10.1109/ICTAI59109.2023.00050},
+  url = {https://doi.ieeecomputersociety.org/10.1109/ICTAI59109.2023.00050},
+  publisher = {IEEE Computer Society},
+  address = {Los Alamitos, CA, USA},
+  month = {nov}
+}
+
 
 Bugs/Requests/Discussions
 =========================
