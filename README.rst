@@ -50,7 +50,7 @@ Please cite the following paper if you use ``pygplib``:
   publisher = {IEEE Computer Society},
   address = {Los Alamitos, CA, USA},
   month = {nov}
-}
+  }
 
 
 Bugs/Requests/Discussions
