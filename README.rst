@@ -1,17 +1,12 @@
+|PyPI Version| |Python Versions| |Test| |Coverage| |License| |Documentation|
+
+Python First-Order Graph Property Library
+==================================================
 
 .. image:: docs/img/pypg_color.png
    :align: center
    :height: 150
    :alt: pygplib
-
-
-Pygplib: Python First-Order Graph Property Library
-==================================================
-
-|PyPI Version| |Python Versions| |Test| |Coverage| |License| |Documentation|
-
-Introduction
-============
 
 ``Pygplib`` (Python First-Order Graph Property Library) is a Python module 
 for constructing, manipulating, and encoding graph properties expressible 
