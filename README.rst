@@ -1,11 +1,9 @@
-.. image:: https://github.com/toda-lab/pygplib/tree/main/docs/img/pypg_color.png
-   :target: https://github.com/toda-lab/pygplib
+
+.. image:: docs/img/pypg_color.png
    :align: center
-   :height: 200
+   :height: 150
    :alt: pygplib
 
-
--------
 
 Pygplib: Python First-Order Graph Property Library
 ==================================================
