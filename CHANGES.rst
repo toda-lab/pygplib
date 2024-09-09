@@ -3,6 +3,18 @@
 CHANGES
 =======
 
+Version 2.2.0 - 2024-09-09
+--------------------------
+
+Fixed
+^^^^^
+- recon.py: trans_type could not be changed from default type "TJ".
+- recon.py: the strings of init state and final state were incorrectly computed when these
+  states are given as sets in a formula file.
+- ecc.py: exception unintentially raised when clique encoding is selected and a
+  graph includes a vertex of degree 1.
+
+
 Version 2.1.0 - 2023-11-06
 --------------------------
 

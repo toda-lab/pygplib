@@ -19,14 +19,16 @@ def get_option():
         "--trans",
         type=str,
         default="TJ",
-        help="Specify transition relation (TS or TJ)",
+        choices=["TS", "TJ"],
+        help="Specify transition relation",
     )
     ap.add_argument(
         "-e",
         "--encoding",
         type=str,
         default="edge",
-        help="Specify ENCODING type (edge, clique, direct, log)",
+        choices=["edge", "clique", "direct", "log"],
+        help="Specify ENCODING type",
     )
     ap.add_argument("arg1", help="dimacs graph file")
     ap.add_argument("arg2", help="formula file")
@@ -91,18 +93,18 @@ def convert_ini_str(formula_str: str, variable_name: list) -> str:
     3 4 5
 
     Input (variable_name)
-    ["x1", "x2", "x3"]
+    ["x01", "x02", "x03", ...,"x10"]
 
     Output (equality as sequence)
-    x1=V3 & x2=V4 & x3=V5
+    x01=V3 & x02=V4 & x03=V5
     """
     for x in formula_str.split(" "):
-        if len(x) == 0:
+        if x == "":
             continue
-        if not x.isdigit():
-            return formula_str
-    vertex_name = ["V" + f"{x}" for x in formula_str.split(" ") if len(x) != 0]
-    if len(vertex_name) != len(variable_name):
+        if f"{int(x)}" != x:
+            raise Exception()
+    vertex_name = ["V" + f"{x}" for x in formula_str.split(" ") if x != ""]
+    if len(vertex_name) > len(variable_name):
         raise Exception("number of integers in init state is unmatching")
 
     return " & ".join([n + "=" + m for n, m in zip(variable_name, vertex_name)])
@@ -115,29 +117,29 @@ def convert_fin_str(formula_str: str, variable_name: list) -> str:
     2 7 6
 
     Input (variable_name)
-    ["x1", "x2", "x3"]
+    ["x01", "x02", "x03", ...,"x10"]
 
     Output (equality as set)
-    (x1=V2 | x1=V7 | x1=V6) & (x2=V2 | x2=V7 | x2=V6) & \
-    (x3=V2 | x3=V7 | x3=V6) & (x1=V2 | x2=V2 | x3=V2) & \
-    (x1=V7 | x2=V7 | x3=V7) & (x1=V6 | x2=V6 | x3=V6)
+    (x01=V2 | x01=V7 | x01=V6) & (x02=V2 | x02=V7 | x02=V6) & \
+    (x03=V2 | x03=V7 | x03=V6) & (x01=V2 | x02=V2 | x03=V2) & \
+    (x01=V7 | x02=V7 | x03=V7) & (x01=V6 | x02=V6 | x03=V6)
     """
     for x in formula_str.split(" "):
-        if len(x) == 0:
+        if x == "":
             continue
-        if not x.isdigit():
-            return formula_str
-    vertex_name = ["V" + f"{x}" for x in formula_str.split(" ") if len(x) != 0]
-    if len(vertex_name) != len(variable_name):
+        if f"{int(x)}" != x:
+            raise Exception()
+    vertex_name = ["V" + f"{x}" for x in formula_str.split(" ") if x != ""]
+    if len(vertex_name) > len(variable_name):
         raise Exception("number of integers in fin state is unmatching")
 
     tmp = []
     # subset relation
-    for n in variable_name:
-        tmp.append("(" + " | ".join([n + "=" + m for m in vertex_name]) + ")")
+    for i in range(len(vertex_name)):
+        tmp.append("(" + " | ".join([variable_name[i] + "=" + n for n in vertex_name]) + ")")
     # supset relation
-    for m in vertex_name:
-        tmp.append("(" + " | ".join([n + "=" + m for n in variable_name]) + ")")
+    for n in vertex_name:
+        tmp.append("(" + " | ".join([n + "=" + variable_name[i] for i in range(len(vertex_name))]) + ")")
     return " & ".join(tmp)
 
 
@@ -163,7 +165,7 @@ trans_expr = Fog.read(phi[1]) if phi[1] != "" else None
 name_list = [NameMgr.lookup_name(v) for v in op.get_free_vars(state_expr)]
 ini_expr = Fog.read(convert_ini_str(phi[2], name_list))
 fin_expr = Fog.read(convert_fin_str(phi[3], name_list))
-trans_type = "None" if phi[1] != "" else "TJ"
+trans_type = "None" if phi[1] != "" else trans_type
 
 st = GrSt(vertex_list, edge_list, encoding=encoding_type)
 bmc = Bmc(state_expr, trans_expr, ini_expr, fin_expr, st, trans_type=trans_type)

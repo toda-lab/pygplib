@@ -47,7 +47,7 @@ class Ecc:
         self.nof_isolated_edges = 0
         """number of isolated edges"""
         for e in self._edges:
-            if len(self._N[e[0]]) == 1 and len(self._N[e[1]]):
+            if len(self._N[e[0]]) == 1 and len(self._N[e[1]]) == 1:
                 self.nof_isolated_edges += 1
 
         if self.nof_isolated_verts > 1:
