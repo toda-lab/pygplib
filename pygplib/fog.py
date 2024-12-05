@@ -2,6 +2,8 @@
 
 import warnings
 
+from functools import cmp_to_key
+
 import pyparsing as pp
 # Enables "packrat" parsing, which speedup parsing.
 # See https://pyparsing-docs.readthedocs.io/en/latest/pyparsing.html .
@@ -15,6 +17,16 @@ from .baserelst import BaseRelSt
 
 class Fog(AbsFo):
     """Expression of First-order logic of graphs
+
+    ::
+
+        Node           |  self._aux[0]  | self._aux[1] 
+        ---------------|----------------|--------------
+        True  constant |  -             | -
+        False constant |  -             | -
+        Quantifier     | index of       | -
+                       | bound variable |
+        Relation       | 1st argument   | 2nd argument
 
     Note:
         In the current implementation, syntactically identical subexpressions
@@ -33,30 +45,25 @@ class Fog(AbsFo):
     Attributes:
         _EDG:   string, representing adjacency relation of vertices.
         _EQ:    string, representing equality relation of vertices.
+        _LT:    string, representing less-than relation of vertices.
         _ATOM_TAGS:  tuple of strings, representing types of atom.
         _BINOP_TAGS: tuple of strings, representing types of binary operator.
         _UNOP_TAGS: tuple of strings, representing types of uniary operator.
         _QF_TAGS:   tuple of strings, representing types of quantifier.
         _EXPR_TAGS: tuple of available tags in this class.
-        _ATOM_BEGIN_POS: beginning position of the atom part of the aux field.
-        _ATOM_LEN:  length of the atom part of the aux field.
-        _AUX_LEN:   length of the aux field.
     """
 
     # Tag-related Variables and Methods
     _EDG = "edg"
     _EQ = "="
+    _LT = "<"
 
-    _ATOM_TAGS = AbsFo._ATOM_TAGS + (_EDG, _EQ)
+    _ATOM_TAGS = AbsFo._ATOM_TAGS + (_EDG, _EQ, _LT)
     _BINOP_TAGS = AbsFo._BINOP_TAGS
     _UNOP_TAGS = AbsFo._UNOP_TAGS
     _QF_TAGS = AbsFo._QF_TAGS
 
     _EXPR_TAGS = _ATOM_TAGS + _BINOP_TAGS + _UNOP_TAGS + _QF_TAGS
-
-    _ATOM_BEGIN_POS = AbsFo._AUX_LEN
-    _ATOM_LEN = 2
-    _AUX_LEN = _ATOM_LEN + AbsFo._AUX_LEN
 
     @classmethod
     def get_edg_tag(cls) -> str:
@@ -68,24 +75,36 @@ class Fog(AbsFo):
         """Gets tag of eq."""
         return cls._EQ
 
+    @classmethod
+    def get_lt_tag(cls) -> str:
+        """Gets tag of lt."""
+        return cls._LT
+
+    
+    @staticmethod
+    def cmp_atom_args(x, y) -> int:
+        if NameMgr.lookup_name(x) == NameMgr.lookup_name(y):
+            return 0
+        if NameMgr.lookup_name(x) < NameMgr.lookup_name(y):
+            return -1
+        if NameMgr.lookup_name(x) > NameMgr.lookup_name(y):
+            return 1
+        raise Exception()
+
     # Constructor-related Methods
     @classmethod
-    def _normalize_aux(cls, aux: tuple) -> tuple:
+    def _normalize_aux(cls, tag: str, aux: tuple) -> tuple:
         """Normalize the order of arguments in relation symbol.
 
         The order is determined based on the order of names.
         """
-        if aux == ():
-            return (0,) * cls._AUX_LEN
-
-        if (
-            len(aux) == 3
-            and aux[1] > 0
-            and aux[2] > 0
-            and NameMgr.lookup_name(aux[1]) > NameMgr.lookup_name(aux[2])
-        ):
-            return (aux[0], aux[2], aux[1])
-
+        # sort aux if symmetric relation
+        if tag in [cls.get_edg_tag(), cls.get_eq_tag()]:
+            return tuple(sorted(aux, key=cmp_to_key(cls.cmp_atom_args)))
+        # do not sort if non-symmetric relation
+        if tag == cls.get_lt_tag():
+            return aux
+        assert len(aux) < 2
         return aux
 
     @classmethod
@@ -98,7 +117,7 @@ class Fog(AbsFo):
         """
         if not (NameMgr.has_name(x) and NameMgr.has_name(y)):
             raise ValueError("Specified index of edg has no name.")
-        return cls(cls._EDG, aux=(0, x, y))
+        return cls(cls._EDG, aux=(x, y))
 
     @classmethod
     def eq(cls, x: int, y: int) -> AbsExpr:
@@ -110,21 +129,33 @@ class Fog(AbsFo):
         """
         if not (NameMgr.has_name(x) and NameMgr.has_name(y)):
             raise ValueError("Specified index of eq has no name.")
-        return cls(cls._EQ, aux=(0, x, y))
+        return cls(cls._EQ, aux=(x, y))
 
     @classmethod
-    def atom(cls, tag: str, x: int, y: int) -> AbsExpr:
-        """Gets the tag-specified atomic formula.
+    def lt(cls, x: int, y: int) -> AbsExpr:
+        """Gets the atomic formula of the form lt(x,y).
 
         Args:
-            x: index of (variable or constant) symbol (or 0 for true or false)
-            y: index of (variable or constant) symbol (or 0 for true or false)
+            x: index of (variable or constant) symbol
+            y: index of (variable or constant) symbol
+        """
+        if not (NameMgr.has_name(x) and NameMgr.has_name(y)):
+            raise ValueError("Specified index of lt has no name.")
+        return cls(cls._LT, aux=(x,y))
+
+    @classmethod
+    def atom(cls, tag: str, *args) -> AbsExpr:
+        """Gets the tag-specified atomic formula.
+
+        Args:\
+            args: tuple of indices of (variable or constant) symbols (or 0 for true or false)
         """
         if tag not in cls._ATOM_TAGS:
             raise ValueError(
                 f"Expression tag, {tag}, is not available in {cls.__name__}"
             )
-        return cls(tag, aux=(0, x, y))
+        assert len(args) == 2
+        return cls(tag, aux=args)
 
     # Instance Methods
     def get_atom_value(self, i: int) -> int:
@@ -133,11 +164,25 @@ class Fog(AbsFo):
         Args:
             i: position of term (1 or 2)
         """
-        if not 0 < i <= type(self)._ATOM_LEN:
-            raise IndexError(
-                f"Value index should range from 1 to {type(self)._ATOM_LEN}"
-            )
-        return self._aux[type(self)._ATOM_BEGIN_POS + i - 1]
+        warn_msg = "`get_atom_value()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.get_atom_arg(i)
+
+    def get_atom_arg(self, i: int) -> int:
+        """Gets the i-th argument of the atomic formula.
+
+        Args:
+            i: argument index (1 or 2)
+
+        Returns:
+            term given as argument of the atom.
+        """
+        if self.is_edg_atom() or self.is_eq_atom() or self.is_lt_atom():
+            if i != 1 and i != 2:
+                raise IndexError("Argument index should be 1 or 2")
+        else:
+            raise Exception("Unknown atom")
+        return self._aux[i-1]
 
     def is_edg_atom(self) -> bool:
         """Is it an atom of the form edg(x,y) ?"""
@@ -147,46 +192,45 @@ class Fog(AbsFo):
         """Is it an atom of the form x=y ?"""
         return self.get_tag() == type(self)._EQ
 
+    def is_lt_atom(self) -> bool:
+        """Is it an atom of the form x<y ?"""
+        return self.get_tag() == type(self)._LT
+
     def compute_nnf_step(self, negated: bool, s: list[list], t: list[list]) -> None:
         """Performs NNF computation for this object."""
-        if self.is_edg_atom() or self.is_eq_atom():
+        if self.is_edg_atom() or self.is_eq_atom() or self.is_lt_atom():
             t.append([0, lambda: type(self).neg(self) if negated else self])
             return
         super().compute_nnf_step(negated, s, t)
 
     def substitute_step(self, y: int, x: int, assoc: dict) -> None:
         """Performs substitution for this object."""
-        if self.is_edg_atom() or self.is_eq_atom():
-            op = [self.get_atom_value(1), self.get_atom_value(2)]
-            if op[0] == x:
-                op[0] = y
-            if op[1] == x:
-                op[1] = y
-            assoc[id(self)] = type(self).atom(self.get_tag(), op[0], op[1])
+        if self.is_edg_atom() or self.is_eq_atom() or self.is_lt_atom():
+            op = [self.get_atom_arg(1), self.get_atom_arg(2)]
+            for i, val in enumerate(op):
+                if val == x:
+                    op[i] = y
+            assoc[id(self)] = type(self).atom(self.get_tag(), *op)
             return
         super().substitute_step(y, x, assoc)
 
     def get_free_vars_and_consts_pre_step(
         self, bound_vars: list, free_vars: list
     ) -> None:
-        """Performs computatoin for this object."""
-        if self.is_edg_atom() or self.is_eq_atom():
-            v = self.get_atom_value(1)
-            w = self.get_atom_value(2)
-
-            if v not in bound_vars:
-                free_vars.append(v)
-            if w not in bound_vars:
-                free_vars.append(w)
+        """Performs computation for this object."""
+        if self.is_edg_atom() or self.is_eq_atom() or self.is_lt_atom():
+            for v in self._aux:
+                if v not in bound_vars:
+                    free_vars.append(v)
             return
 
         super().get_free_vars_and_consts_pre_step(bound_vars, free_vars)
 
     def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
-        """Performs reduce computatoin for this object."""
+        """Performs reduce computation for this object."""
 
         if self.is_edg_atom():
-            op = [self.get_atom_value(1), self.get_atom_value(2)]
+            op = [self.get_atom_arg(1), self.get_atom_arg(2)]
             if op[0] == op[1]:  # always false regardless of graphs
                 assoc[id(self)] = type(self).false_const()
                 return
@@ -201,7 +245,7 @@ class Fog(AbsFo):
             return
 
         if self.is_eq_atom():
-            op = [self.get_atom_value(1), self.get_atom_value(2)]
+            op = [self.get_atom_arg(1), self.get_atom_arg(2)]
             if op[0] == op[1]:  # always true regardless of graphs
                 assoc[id(self)] = type(self).true_const()
                 return
@@ -215,48 +259,71 @@ class Fog(AbsFo):
             assoc[id(self)] = self
             return
 
+        if self.is_lt_atom():
+            op = [self.get_atom_arg(1), self.get_atom_arg(2)]
+            if op[0] == op[1]:
+                assoc[id(self)] = type(self).false_const()
+                return
+            if NameMgr.is_constant(op[0]) and NameMgr.is_constant(op[1]):
+                if st != None:
+                    if st.lt(op[0], op[1]):
+                        assoc[id(self)] = type(self).true_const()
+                    else:
+                        assoc[id(self)] = type(self).false_const()
+                    return
+            assoc[id(self)] = self
+            return
+
         super().reduce_formula_step(assoc, st)
 
     def perform_boolean_encoding_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs Boolean encoding for this object."""
         if self.is_edg_atom():
-            atom = [self.get_atom_value(1), self.get_atom_value(2)]
+            atom = [self.get_atom_arg(1), self.get_atom_arg(2)]
             if atom[0] == atom[1]:
-                assoc[id(self)] = st.encode_F()
+                assoc[id(self)] = st.be_F()
             else:
-                assoc[id(self)] = st.encode_edg(atom[0],atom[1])
+                assoc[id(self)] = st.be_edg(atom[0],atom[1])
             return
 
         if self.is_eq_atom():
-            atom = [self.get_atom_value(1), self.get_atom_value(2)]
+            atom = [self.get_atom_arg(1), self.get_atom_arg(2)]
             if atom[0] == atom[1]: 
-                assoc[id(self)] = st.encode_T()
+                assoc[id(self)] = st.be_T()
             else:
-                assoc[id(self)] = st.encode_eq(atom[0],atom[1])
+                assoc[id(self)] = st.be_eq(atom[0],atom[1])
+            return
+
+        if self.is_lt_atom():
+            atom = [self.get_atom_arg(1), self.get_atom_arg(2)]
+            if atom[0] == atom[1]:
+                assoc[id(self)] = st.be_F()
+            else:
+                assoc[id(self)] = st.be_lt(atom[0],atom[1])
             return
 
         if (\
-            self.is_land_term()\
-            or self.is_lor_term()\
-            or self.is_implies_term()\
-            or self.is_iff_term()\
+            self.is_land()\
+            or self.is_lor()\
+            or self.is_implies()\
+            or self.is_iff()\
         ):
             left  = assoc[id(self.get_operand(1))]
             right = assoc[id(self.get_operand(2))]
             assoc[id(self)] = Prop.binop(self.get_tag(), left, right)
             return
 
-        if self.is_neg_term():
+        if self.is_neg():
             op = assoc[id(self.get_operand(1))]
             assoc[id(self)] = Prop.neg(op)
             return
 
         if self.is_true_atom():
-            assoc[id(self)] = st.encode_T()
+            assoc[id(self)] = st.be_T()
             return
 
         if self.is_false_atom():
-            assoc[id(self)] = st.encode_F()
+            assoc[id(self)] = st.be_F()
             return
 
         assert False
@@ -290,10 +357,11 @@ class Fog(AbsFo):
 
         An atomic formula is defined as follows::
 
-            <atom>::= <edg_atom> | <eq_atom> | <con_atom>
+            <atom>::= <edg_atom> | <eq_atom> | <con_atom> | <lt_atom>
             <edg_atom>::= "edg" "(" <term> "," <term> ")"
             <eq_atom>::=  <term> "=" <term>
             <con_atom>::= "T" | "F"
+            <lt_atom>::=  <term> "<" <term>
             <term>::= <var_symb> | <con_symb>
 
         A formula is defined as follows::
@@ -323,28 +391,32 @@ class Fog(AbsFo):
         Args:
             formula_str: string representation of formula
         """
+        if formula_str.strip() == "":
+            raise Exception("no formula given")
 
         # The following tokens are suppressed in the parsed result.
         COMMA  = pp.Suppress(cls.get_comma_tag())
         LPAREN = pp.Suppress(cls.get_lparen_tag())
         RPAREN = pp.Suppress(cls.get_rparen_tag())
 
-        # Variables are strings that match the pattern [a-z][a-z0-9_]* .
+        # Variables are strings that match the pattern [a-z_][a-z0-9_]* .
         # Constants are strings that match the pattern [A-Z][A-Z0-9_]* .
         VAR_SYMB = pp.Word(pp.srange("[a-z]"), pp.srange("[a-z0-9_]"))
         CON_SYMB = pp.Word(pp.srange("[A-Z]"), pp.srange("[A-Z0-9_]"))
         TERM = VAR_SYMB | CON_SYMB
 
         EDG_SYMB = pp.Literal(cls.get_edg_tag())
-        EQ_SYMB = pp.Literal(cls.get_eq_tag())
+        EQ_SYMB  = pp.Literal(cls.get_eq_tag())
+        LT_SYMB  = pp.Literal(cls.get_lt_tag())
         EDG_REL = EDG_SYMB + LPAREN + TERM + COMMA + TERM + RPAREN
-        EQ_REL = TERM + EQ_SYMB + TERM
+        EQ_REL  = TERM + EQ_SYMB + TERM
+        LT_REL  = TERM + LT_SYMB + TERM
 
-        TRUE = pp.Literal(cls.get_true_const_tag())
+        TRUE  = pp.Literal(cls.get_true_const_tag())
         FALSE = pp.Literal(cls.get_false_const_tag())
         CON_REL = TRUE | FALSE
 
-        ATOM_EXPR = EDG_REL | EQ_REL | CON_REL
+        ATOM_EXPR = EDG_REL | LT_REL | EQ_REL | CON_REL
 
         UNOP = pp.Literal(cls.get_neg_tag())
 
@@ -389,6 +461,15 @@ class Fog(AbsFo):
                 op1 = int(tokens[0])
                 op2 = int(tokens[2])
                 return cls.eq(op1, op2)
+            assert False
+
+        @LT_REL.set_parse_action
+        def action_lt_rel(string, location, tokens):
+            assert len(tokens) == 3, f"{tokens}"
+            if tokens[1] == cls.get_lt_tag():
+                op1 = int(tokens[0])
+                op2 = int(tokens[2])
+                return cls.lt(op1, op2)
             assert False
 
         @CON_REL.set_parse_action
@@ -456,14 +537,19 @@ class Fog(AbsFo):
     def make_str_pre_step(self) -> str:
 
         if self.is_edg_atom():
-            name1 = NameMgr.lookup_name(self.get_atom_value(1))
-            name2 = NameMgr.lookup_name(self.get_atom_value(2))
+            name1 = NameMgr.lookup_name(self.get_atom_arg(1))
+            name2 = NameMgr.lookup_name(self.get_atom_arg(2))
             return f"edg({name1}, {name2})"
 
         if self.is_eq_atom():
-            name1 = NameMgr.lookup_name(self.get_atom_value(1))
-            name2 = NameMgr.lookup_name(self.get_atom_value(2))
+            name1 = NameMgr.lookup_name(self.get_atom_arg(1))
+            name2 = NameMgr.lookup_name(self.get_atom_arg(2))
             return f"{name1} = {name2}"
+
+        if self.is_lt_atom():
+            name1 = NameMgr.lookup_name(self.get_atom_arg(1))
+            name2 = NameMgr.lookup_name(self.get_atom_arg(2))
+            return f"{name1} < {name2}"
 
         return super().make_str_pre_step()
 
@@ -473,6 +559,9 @@ class Fog(AbsFo):
             return ""
 
         if self.is_eq_atom():
+            return ""
+
+        if self.is_lt_atom():
             return ""
 
         return super().make_str_in_step()
@@ -485,23 +574,21 @@ class Fog(AbsFo):
         if self.is_eq_atom():
             return ""
 
+        if self.is_lt_atom():
+            return ""
+
         return super().make_str_post_step()
 
     def make_node_str_step(self) -> str:
 
-        if self.is_edg_atom() or self.is_eq_atom():
-
-            op1 = (
-                NameMgr.lookup_name(self.get_atom_value(1))
-                if self.get_atom_value(1) != 0
-                else "-"
-            )
-            op2 = (
-                NameMgr.lookup_name(self.get_atom_value(2))
-                if self.get_atom_value(2) != 0
-                else "-"
-            )
-
-            return f'"edg({op1},{op2})"' if self.is_edg_atom() else f'"{op1}={op2}"'
-
+        if self.is_edg_atom() or self.is_eq_atom() or self.is_lt_atom():
+            op = []
+            for val in self._aux:
+                op.append(NameMgr.lookup_name(val) if val != 0 else "-")
+            if self.is_edg_atom():
+                return f'"edg({op[0]},{op[1]})"'
+            if self.is_eq_atom():
+                return f'"{op[0]}={op[1]}"'
+            if self.is_edg_atom():
+                return f'"{op[0]}<{op[1]}"'
         return super().make_node_str_step()

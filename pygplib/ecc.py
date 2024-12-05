@@ -1,4 +1,5 @@
 import random
+from simpgraph import SimpGraph
 
 class Ecc:
     """Class for computing an edge clique cover.
@@ -8,51 +9,41 @@ class Ecc:
     https://doi.org/10.1016/j.ic.2019.104464
     """
 
-    def __init__(self, vertex_list: list, edge_list: list):
-        if len(set(vertex_list)) != len(vertex_list):
-            raise Exception(f"duplicate vertex found: {vertex_list}")
-        if False in list(map(lambda x: x > 0, vertex_list)):
-            raise Exception(f"non-positive index found: {vertex_list}")
+    def __init__(self, vertex_list, edge_list):
+        for v in vertex_list:
+            if v < 0:
+                raise Exception()
         for e in edge_list:
-            if len(e) != 2 or e[0] == e[1]:
-                raise Exception(f"invalid edge: {e}")
-            if e[0] not in vertex_list\
-                or e[1] not in vertex_list:
-                raise Exception(f"invalid vertex specified by edge: {e}")
-
-        self._verts = tuple(vertex_list)
-        """tuple of vertices"""
-        self._edges = tuple([tuple(sorted(e)) for e in edge_list])
-        """tuple of edges, where each edge is a sorted tuple."""
+            if type(e) != tuple and len(e) != 2:
+                raise Exception()
+            if e[0] not in vertex_list or e[1] not in vertex_list:
+                raise Exception()
+        self._G = SimpGraph()
+        """graph"""
+        for v in vertex_list:
+            self._G.add_vertex(v)
+        for v,w in edge_list:
+            self._G.add_edge(v,w)
         self._invdic = {}
-        """dictionary to find the position of edge or vertex in self._edges"""
-        for pos, e in enumerate(self._edges):
+        """dictionary to find the position of edge or vertex in _G.all_edges"""
+        for pos, e in enumerate(self._G.all_edges()):
             assert e not in self._invdic
             self._invdic[e] = pos
-        for pos, v in enumerate(self._verts):
+        for pos, v in enumerate(self._G.all_vertices()):
             assert v not in self._invdic
             self._invdic[v] = pos
-        self._N = {}
-        """dictionary to find the neighborhood of a vertex"""
-        for v in self._verts:
-            self._N[v] = set()
-        for e in self._edges:
-            self._N[e[0]].add(e[1])
-            self._N[e[1]].add(e[0])
-        self.nof_isolated_verts = 0
-        """number of isolated vertices"""
-        for v in self._verts:
-            if len(self._N[v]) == 0:
-                self.nof_isolated_verts += 1
-        self.nof_isolated_edges = 0
-        """number of isolated edges"""
-        for e in self._edges:
-            if len(self._N[e[0]]) == 1 and len(self._N[e[1]]) == 1:
-                self.nof_isolated_edges += 1
-
-        if self.nof_isolated_verts > 1:
-            raise Exception(f"number of isolated vertices must be at most one.")
-        if self.nof_isolated_edges > 0:
+        nof_isolated_verts = 0
+        for v in self._G.all_vertices():
+            if len(self._G.adj_vertices(v)) == 0:
+                nof_isolated_verts += 1
+        nof_isolated_edges = 0
+        for v,w in self._G.all_edges():
+            if len(self._G.adj_vertices(v)) == 1\
+                and len(self._G.adj_vertices(w)) == 1:
+                nof_isolated_edges += 1
+        if nof_isolated_verts > 0:
+            raise Exception(f"isolated vertex is not allowed.")
+        if nof_isolated_edges > 0:
             raise Exception(f"isolated edge is not allowed.")
 
     def _select_uncovered_edge(self, U: list, variant: str = "r"):
@@ -66,8 +57,7 @@ class Ecc:
             vertices that are incident to the selected edge.
         """
         if variant == "r":
-            i = random.randint(0,len(U)-1)
-            return U[i][0], U[i][1]
+            return random.choice(U)
         else:
             raise Exception(f"NotImplementedError: variant {variant}")
 
@@ -87,8 +77,7 @@ class Ecc:
             return -1
 
         if variant == "r":
-            pos = random.randint(0,len(P)-1)
-            return list(P)[pos]
+            return random.choice(list(P))
         else:
             raise Exception(f"NotImplementedError: variant {variant}")
 
@@ -103,11 +92,11 @@ class Ecc:
             variant: variant for the vertex extraction
         """
         Q = [u,v]
-        P = self._N[u] & self._N[v]
+        P = set(self._G.adj_vertices(u)) & set(self._G.adj_vertices(v))
         z = self._extract_node(P,Q,variant)
         while z != -1:
             Q.append(z)
-            P = P & self._N[z]
+            P = P & set(self._G.adj_vertices(z))
             z = self._extract_node(P,Q,variant)
         return tuple(sorted(Q))
 
@@ -124,12 +113,10 @@ class Ecc:
         for i in range(len(Q)):
             for j in range(i+1,len(Q)):
                 e = tuple(sorted([Q[i],Q[j]]))
-                assert e in self._invdic
                 pos = self._invdic[e]
                 if not p[pos] < len(U): # e is already covered.
                     continue
                 U[p[pos]] = U[-1]
-                assert U[-1] in self._invdic
                 p[self._invdic[U[-1]]] = p[pos]
                 p[pos] = len(U)-1
                 U.pop(-1)
@@ -138,22 +125,22 @@ class Ecc:
         """Computes an edge clique cover of a given graph."""
         if len(variant) != 2:
             raise Exception(f"variant {variant} not defined")
-        C = []
         # edge clique cover
-        U = [e for e in self._edges]
+        C = []
         # edges remaining uncovered
-        p = [pos for pos in range(len(self._edges))]
+        U = list(self._G.all_edges())
         # list to find the position of each edge in U.
-        # U[p[i]] == self._edges[i] holds if the i-th edge remains uncovered.
+        # U[p[i]] == all_edges[i] holds if the i-th edge remains uncovered.
+        p = list(range(len(self._G.all_edges())))
         while U != []:
-            u,v = self._select_uncovered_edge(U,variant=variant[0])
+            (u,v) = self._select_uncovered_edge(U,variant=variant[0])
             Q = self._find_clique_covering(u,v,U,variant=variant[1])
             C.append(Q)
             self._mark_all_edges_covered(Q,U,p)
         return tuple(C)
 
-    def _select_unseparated_edge(self, U: list, variant: str = "r"):
-        """Selects an unseparated edge at random.
+    def _select_unseparated_block(self, U: list, variant: str = "r"):
+        """Selects an unseparated block at random.
 
         Args:
             U: list of uncovered edges
@@ -163,78 +150,64 @@ class Ecc:
             vertices that are incident to the selected edge.
         """
         if variant == "r":
-            i = random.randint(0,len(U)-1)
-            return U[i][0], U[i][1]
+            return random.choice(U)
         else:
             raise Exception(f"NotImplementedError: variant {variant}")
 
-    def _find_clique_separating(self, u: int, v:int, U: list, \
-        variant: str = "r") -> tuple:
-        """Finds a clique separating a given edge.
+    def _find_clique_separating(self, S: set, variant: str = "r") -> tuple:
+        """Finds a clique separating a given block.
 
         Args:
-            u: one of the vertices that are adjacent with each other
-            v: the other vertex
-            U: list of uncovered edges
+            S: set of vertices of at least size 2
             variant: variant for the vertex extraction
         """
-        if len(self._N[u]) == 1:
-            Q = [v]
-            P = self._N[v] - {u}
-        else:
-            Q = [u]
-            P = self._N[u] - {v}
+        assert len(S) >= 2
+        u = random.choice(list(S))
+        v = random.choice(list(S-{u}))
+        # Find a clique separaring u and v.
+        if len(self._G.adj_vertices(u)) == 1:
+            u,v = v,u
+        Q = [u]
+        P = set(self._G.adj_vertices(u)) - {v}
         assert len(P) > 0
         z = self._extract_node(P,Q,variant)
         while z != -1:
+            assert z != v
             Q.append(z)
-            P = P & self._N[z]
+            P = P & set(self._G.adj_vertices(z))
             z = self._extract_node(P,Q,variant)
         return tuple(sorted(Q))
 
-    def _mark_all_edges_separated(self, Q: tuple, U: list, p: list) -> None:
-        """Marks all edges of Q as separated.
-
-        Update U and p so that all edges in Q are marked as separated.
+    def _separate_blocks(self, Q: tuple, U: list) -> list:
+        """Separate blocks by a clique.
 
         Args:
             Q: clique
-            U: list of unseparated edges
-            p: list to find the position of each edge in U.
+            U: list of blocks
         """
-        for u in Q:
-            for v in self._N[u] - set(Q):
-                e = tuple(sorted([u,v]))
-                assert e in self._invdic
-                pos = self._invdic[e]
-                if not p[pos] < len(U): # e is already separated.
-                    continue
-                U[p[pos]] = U[-1]
-                assert U[-1] in self._invdic
-                p[self._invdic[U[-1]]] = p[pos]
-                p[pos] = len(U)-1
-                U.pop(-1)
-
+        new_U = []
+        while U != []:
+            S = U.pop()
+            T = [set(),set()]
+            for w in S:
+                if w in Q:
+                    T[1].add(w)
+                else:
+                    T[0].add(w)
+            for i in [0,1]: 
+                if len(T[i]) > 1:
+                    new_U.append(T[i])
+        return new_U
+           
     def compute_separating_ecc(self, variant: str = "rr") -> list[list[int]]:
         """Computes a separating edge clique cover of a given graph."""
         C = list(self.compute_ecc(variant=variant))
-
-        # separating edge clique cover
-        M = [set() for v in self._verts]
-        # cliques incident to each vertex
-        for pos, Q in enumerate(C):
-            for v in Q:
-                M[self._invdic[v]].add(pos)
-        U = [e for e in self._edges \
-                if M[self._invdic[e[0]]] == M[self._invdic[e[1]]]]
-        # edges remaining unseparated
-        p = [pos for pos in range(len(self._edges))]
-        # list to find the position of each edge in U.
-        # U[p[i]] == self._edges[i] holds if the i-th edge remains unseparated.
+        U = [set(self._G.all_vertices())]
+        for Q in C:
+            U = self._separate_blocks(Q, U)
         while U != []:
-            u,v = self._select_unseparated_edge(U,variant=variant[0])
-            assert tuple(sorted([u,v])) in self._edges
-            Q = self._find_clique_separating(u,v,U,variant=variant[1])
+            S = self._select_unseparated_block(U,variant=variant[0])
+            Q = self._find_clique_separating(S,variant=variant[1])
             C.append(Q)
-            self._mark_all_edges_separated(Q,U,p)
+            U = self._separate_blocks(Q,U)
         return tuple(C)

@@ -10,12 +10,10 @@ def test_name_mgr():
         ("x1", True),
         ("x2", True),
         ("x3", True),
-        ("y2@1", True),
         ("V2", False),
         ("V3", False),
         ("y1", True),
         ("x_1", True),
-        ("X_1_x@2", False),
     ]
 
     NameMgr.clear()

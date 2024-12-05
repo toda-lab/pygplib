@@ -11,7 +11,7 @@ Install Pygplib
 Quick Example
 -------------
 
-Let us count the number of independent sets of size ``3`` in the following
+Let us randomly generate independent sets of size ``3`` in the following
 graph, ``G``, with ``pygplib``.
 
 .. code:: shell-session
@@ -24,7 +24,7 @@ graph, ``G``, with ``pygplib``.
     # |    |     |
     # V4---V7   V6
 
-Import necessary modules and create a graph structure.
+Let us import necessary modules and create a graph structure.
 
 .. code:: python
 
@@ -34,7 +34,7 @@ Import necessary modules and create a graph structure.
     edge_list = [(1,2),(1,3),(2,4),(2,5),(3,6),(4,7),(5,7)]  # edges of G
     st = GrSt(vertex_list, edge_list)
 
-Parse an expression and construct a first-order formula object.
+Let us parse an expression and construct a first-order formula object.
 See :ref:`FirstOrderLogicofGraphs` and :ref:`FormatofFirstOrderFormula` for
 details.
 
@@ -43,7 +43,7 @@ details.
     f = Fog.read("(~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) "\
                 +"& (~ x1=x2) & (~ x1=x3) & (~ x2=x3)")
 
-Perform Boolean encoding for ``f`` and 
+Let us perform Boolean encoding for ``f`` and 
 compute the domain constraint for each free variable of ``f``.
 The list ``[g, ] + li`` consists of propositional formulas such that 
 ``f`` is satisfiable in ``G`` if and only if the conjunction of propositional formulas is
@@ -58,34 +58,52 @@ The encodings performed in this code block are described in more details in :ref
     g = op.perform_boolean_encoding(f, st)
     li  = [st.compute_domain_constraint(v) \
                     for v in op.get_free_vars(f)]
-    mgr = Cnf( [g, ] + li )
+    mgr = Cnf( [g, ] + li, st=st)
 
-Generate a CNF formula to ``f.cnf`` in `DIMACS CNF format
-<http://www.satcompetition.org/2009/format-benchmarks2009.html>`__ .
+
+Let us import unigen, `UniGen approximately uniform sampler <https://github.com/meelgroup/unigen>`__ , 
+and perform random sampling of solutions of the cnf. 
+(If necessary, install unigen module beforehand.)
 
 .. code:: python
 
-    with open("f.cnf","w") as out:
-        mgr.write(stream=out)
+    from pysat.formula import CNF
+    from pysat.solvers import Solver
+    from pyunigen import Sampler
 
+    num=5 # number of samples to be generated
 
-To count the number of solutions, 
-download and build a model counter `sharpSAT
-<https://github.com/marcthurley/sharpSAT.git>`__ .
-Run the following command.
+    sampler=Sampler()
+    for clause in mgr.cnf:
+        sampler.add_clause(clause)
 
-.. code:: shell-session
+    cells, hashes, samples = sampler.sample(num=num, sampling_set=range(1,mgr.base+1))
+    for ext_partial_assign in samples:
+        with Solver(\
+            bootstrap_with=CNF(\
+                from_clauses=\
+                    list(mgr.cnf) + [(lit,) for lit in ext_partial_assign])) as solver:
+            if solver.solve():
+                ext_full_assign = solver.get_model() # external CNF vars.
+                int_assign = mgr.decode_assignment(ext_full_assign) # internal CNF vars.
+                fo_assign = struct.decode_assignment(int_assign) # first-order vars.
+                ans = sorted([struct.object_to_vertex(fo_assign[key]) \
+                                        for key in fo_assign.keys()])
+                print(ans)
+            else:
+                print("Unexpected error occured during sampling!")
 
-    $ path-to-sharpSAT/sharpSAT f.cnf
-    (The first part omitted)
-    # solutions 
-    48
-    # END
-    
-    time: 0.108726s
+Sampling solutions of combinatrial problems is computationally hard in general.
+To make the above computation more efficient, pygplib provides a technique of so-called symmetry breaking.
+The formula of independent set is symmetry, i.e., any performulation of 
+a satisfying assignment of vertices to first-order variables is also a solution of the formula,
+which results in an enormous number of solutions, making it hard to perform sampling.
+To overcome this, let us consider the following formula to which the constraint that all vertices assigned to variables are sorted is added instead of all-different constraint.
 
-Note that solutions are the permutations of all independent sets of size
-``3``.
-For example, the assignment ``x1=2,x2=7,x3=3`` is distinguished
-from any other permutation of it, say ``x1=7,x1=2,x3=3``.
-Hence the number of all independent sets of size ``3`` amounts to ``48/3!=8``.
+.. code:: python
+
+    f = Fog.read("x1<x2 & x2<x3"\
+                +"& (~ x1=x2) & (~ x1=x3) & (~ x2=x3)")
+
+After that, let us encode it into CNF and perform sampling in the same way as described just above.
+Sampling for larger graphs would become more efficient.

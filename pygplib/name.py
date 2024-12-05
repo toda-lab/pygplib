@@ -39,6 +39,10 @@ class NameMgr:
 
         Note:
             If not exists, a new index will be assigned.
+            The method fails if names of auxiliary variables introduced by
+            get_aux_index are given.
+            If the leading character is "_" and the name is already registered,
+            then this means that it is the index of an auxiliary variable.
 
         Args:
             name:   name of (variable or constant) symbol
@@ -46,11 +50,25 @@ class NameMgr:
         Raises:
             ValueError: if the leading character is not alphabetic.
         """
+        if name[:1] == "_" and name in cls._dict:
+            return cls._dict[name]
         if not name[:1].isalpha():
             raise ValueError("Leading character must be alphabetic.")
         if name not in cls._dict:
             cls._inv_list.append(name)
             cls._dict[name] = len(cls._inv_list)
+        return cls._dict[name]
+
+
+    @classmethod
+    def get_aux_index(cls) -> int:
+        """Gets the index of a new auxiliary variable to introduce.
+
+        The leading character of variable name is "_" to avoid collision.
+        """
+        name = f"_{len(cls._inv_list)+1}"
+        cls._inv_list.append(name)
+        cls._dict[name] = len(cls._inv_list)
         return cls._dict[name]
 
     @classmethod
@@ -98,7 +116,7 @@ class NameMgr:
         if not cls.has_name(index):
             raise ValueError(f"No name is linked to {index}")
         name = cls.lookup_name(index)
-        return name[:1].islower()
+        return name[:1].islower() or name[:1] == "_"
 
     @classmethod
     def is_constant(cls, index: int) -> bool:

@@ -29,7 +29,7 @@ def test_format():
     pass
 
 
-def test_generator():
+def test_generate_subformulas():
     pass
 
 

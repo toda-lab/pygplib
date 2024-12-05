@@ -12,6 +12,13 @@ from .baserelst import BaseRelSt
 class AbsProp(AbsNeg):
     """Expression of Propositional Logic with true and false and no variable
 
+    ::
+
+        Node           |  self._aux[0]  | self._aux[1] 
+        ---------------|----------------|--------------
+        True  constant |  -             | -
+        False constant |  -             | -
+
     Attributes:
         _LAND:  string, representing logical conjunction.
         _LOR:   string, representing logical disjunction.
@@ -163,17 +170,41 @@ class AbsProp(AbsNeg):
     # Instance Methods
     def is_land_term(self) -> bool:
         """Is the top-most operator logical conjunction ?"""
+        warn_msg = "`is_land_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_land()
+
+    def is_land(self) -> bool:
+        """Is the top-most operator logical conjunction ?"""
         return self.get_tag() == type(self)._LAND
 
     def is_lor_term(self) -> bool:
+        """Is the top-most operator logical disjunction ?"""
+        warn_msg = "`is_lor_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_lor()
+
+    def is_lor(self) -> bool:
         """Is the top-most operator logical disjunction ?"""
         return self.get_tag() == type(self)._LOR
 
     def is_implies_term(self) -> bool:
         """Is the top-most operator logical implication ?"""
+        warn_msg = "`is_implies_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_implies()
+
+    def is_implies(self) -> bool:
+        """Is the top-most operator logical implication ?"""
         return self.get_tag() == type(self)._IMPLIES
 
     def is_iff_term(self) -> bool:
+        """Is the top-most operator logical equivalence ?"""
+        warn_msg = "`is_iff_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_iff()
+
+    def is_iff(self) -> bool:
         """Is the top-most operator logical equivalence ?"""
         return self.get_tag() == type(self)._IFF
 
@@ -183,7 +214,7 @@ class AbsProp(AbsNeg):
         f = self.get_operand(1)
         g = self.get_operand(2)
 
-        if self.is_land_term():
+        if self.is_land():
             if negated:
                 # not (f and g) = not f or not g
                 t.append([2, lambda y, z: type(self).lor(y, z)])
@@ -197,7 +228,7 @@ class AbsProp(AbsNeg):
                 s.append([False, g])
                 return
 
-        if self.is_lor_term():
+        if self.is_lor():
             if negated:
                 # not (f or g) = not f and not g
                 t.append([2, lambda y, z: type(self).land(y, z)])
@@ -211,7 +242,7 @@ class AbsProp(AbsNeg):
                 s.append([False, g])
                 return
 
-        if self.is_implies_term():
+        if self.is_implies():
             if negated:
                 # not (f -> g) = f and not g
                 t.append([2, lambda y, z: type(self).land(y, z)])
@@ -225,7 +256,7 @@ class AbsProp(AbsNeg):
                 s.append([False, g])
                 return
 
-        if self.is_iff_term():
+        if self.is_iff():
             if negated:
                 # not (f <-> g) = not (f -> g) or not (g -> f)
                 t.append([2, lambda y, z: type(self).lor(y, z)])
@@ -246,7 +277,7 @@ class AbsProp(AbsNeg):
         """Performs CNF computation for this object."""
 
         # a <-> b and c:  (-a or b) and (-a or c) and (a or -b or -c)
-        if self.is_land_term():
+        if self.is_land():
             a = igen.get_next()
             b = assoc[id(self.get_operand(1))]
             c = assoc[id(self.get_operand(2))]
@@ -259,7 +290,7 @@ class AbsProp(AbsNeg):
             return
 
         # a <-> b or  c:  (a or -c) and (a or -b) and (-a or b or c)
-        if self.is_lor_term():
+        if self.is_lor():
             a = igen.get_next()
             b = assoc[id(self.get_operand(1))]
             c = assoc[id(self.get_operand(2))]
@@ -272,13 +303,13 @@ class AbsProp(AbsNeg):
             return
 
         assert (
-            not self.is_implies_term() and not self.is_iff_term()
+            not self.is_implies() and not self.is_iff()
         ), "compute_cnf_step() assumes reduced formulas"
         super().compute_cnf_step(igen, assoc, cnf)
 
     def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computation for this object."""
-        if self.is_land_term():
+        if self.is_land():
             left = assoc[id(self.get_operand(1))]
             right = assoc[id(self.get_operand(2))]
 
@@ -305,7 +336,7 @@ class AbsProp(AbsNeg):
             assoc[id(self)] = type(self).land(left, right)
             return
 
-        if self.is_lor_term():
+        if self.is_lor():
             left = assoc[id(self.get_operand(1))]
             right = assoc[id(self.get_operand(2))]
 
@@ -332,50 +363,108 @@ class AbsProp(AbsNeg):
             assoc[id(self)] = type(self).lor(left, right)
             return
 
+        if self.is_implies():
+            left = assoc[id(self.get_operand(1))]
+            right = assoc[id(self.get_operand(2))]
+
+            if left.is_true_atom():  # T -> right = right
+                assoc[id(self)] = right
+                return
+
+            if left.is_false_atom():  # F -> right = T
+                assoc[id(self)] = type(self).true_const()
+                return
+
+            if right.is_true_atom():  # left -> T = T
+                assoc[id(self)] = type(self).true_const()
+                return
+
+            if right.is_false_atom():  # left -> F = ~left
+                assoc[id(self)] = type(self).neg(left)
+                return
+
+            if left == right: # left -> left = T
+                assoc[id(self)] = type(self).true_const()
+                return
+
+            # left -> right = ~left | right
+            assoc[id(self)] = type(self).lor(type(self).neg(left), right)
+            return
+
+        if self.is_iff():
+            left = assoc[id(self.get_operand(1))]
+            right = assoc[id(self.get_operand(2))]
+
+            if left.is_true_atom():  # T <-> right = right
+                assoc[id(self)] = right
+                return
+
+            if left.is_false_atom():  # F <-> right = ~right
+                assoc[id(self)] = type(self).neg(right)
+                return
+
+            if right.is_true_atom():  # left <-> T = left
+                assoc[id(self)] = left
+                return
+
+            if right.is_false_atom():  # left <-> F = ~left
+                assoc[id(self)] = type(self).neg(left)
+                return
+
+            if left == right: # left <-> left = T
+                assoc[id(self)] = type(self).true_const()
+                return
+
+            # left <-> right = (~left | right) & (left | ~right)
+            assoc[id(self)] = type(self).land(
+                type(self).lor(type(self).neg(left), right),
+                type(self).lor(left, type(self).neg(right)))
+            return
+
         super().reduce_formula_step(assoc, st)
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""
         if (
-            self.is_land_term()
-            or self.is_lor_term()
-            or self.is_implies_term()
-            or self.is_iff_term()
+            self.is_land()
+            or self.is_lor()
+            or self.is_implies()
+            or self.is_iff()
         ):
             return "("
         return super().make_str_pre_step()
 
     def make_str_in_step(self) -> str:
         """Makes string in infix order for this object."""
-        if self.is_land_term():
+        if self.is_land():
             return " " + type(self).get_land_tag() + " "
-        if self.is_lor_term():
+        if self.is_lor():
             return " " + type(self).get_lor_tag() + " "
-        if self.is_implies_term():
+        if self.is_implies():
             return " " + type(self).get_implies_tag() + " "
-        if self.is_iff_term():
+        if self.is_iff():
             return " " + type(self).get_iff_tag() + " "
         return super().make_str_in_step()
 
     def make_str_post_step(self) -> str:
         """Makes string in postfix order for this object."""
         if (
-            self.is_land_term()
-            or self.is_lor_term()
-            or self.is_implies_term()
-            or self.is_iff_term()
+            self.is_land()
+            or self.is_lor()
+            or self.is_implies()
+            or self.is_iff()
         ):
             return ")"
         return super().make_str_post_step()
 
     def make_node_str_step(self) -> str:
         """Makes string of this object for DOT print."""
-        if self.is_land_term():
+        if self.is_land():
             return "AND"
-        if self.is_lor_term():
+        if self.is_lor():
             return "OR"
-        if self.is_implies_term():
+        if self.is_implies():
             return "IMP"
-        if self.is_iff_term():
+        if self.is_iff():
             return "IFF"
         return super().make_node_str_step()

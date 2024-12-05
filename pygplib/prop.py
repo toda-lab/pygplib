@@ -15,15 +15,20 @@ from .baserelst import BaseRelSt
 class Prop(AbsProp):
     """Expression of Propositional Logic
 
+    ::
+
+        Node             |  self._aux[0]  | self._aux[1] 
+        -----------------|----------------|--------------
+        True  constant   |  -             | -
+        False constant   |  -             | -
+        Boolean Variable | variable index | -
+
     Attributes:
         _VAR:   string, representing Boolean variable.
         _ATOM_TAGS:  tuple of strings, representing types of atom.
         _BINOP_TAGS: tuple of strings, representing types of binary operator.
         _UNOP_TAGS: tuple of strings, representing types of uniary operator.
         _EXPR_TAGS: tuple of available tags in this class.
-        _ATOM_BEGIN_POS: beginning position of the atom part of the aux field.
-        _ATOM_LEN:  length of the atom part of the aux field.
-        _AUX_LEN:   length of the aux field.
     """
 
     # Tag-related Variables and Methods
@@ -34,10 +39,6 @@ class Prop(AbsProp):
     _UNOP_TAGS = AbsProp._UNOP_TAGS
 
     _EXPR_TAGS = _ATOM_TAGS + _BINOP_TAGS + _UNOP_TAGS
-
-    _ATOM_BEGIN_POS = AbsProp._AUX_LEN
-    _ATOM_LEN = 1
-    _AUX_LEN = _ATOM_LEN + AbsProp._AUX_LEN
 
     @classmethod
     def get_var_tag(cls):
@@ -55,18 +56,19 @@ class Prop(AbsProp):
     # Instance Methods
     def get_atom_value(self, i: int) -> int:
         """Gets the index of the Boolean variable."""
+        warn_msg = "`get_atom_value()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
         if not self.is_var_atom():
             raise Exception("The formula is not a Boolean variable.")
-        if not 0 < i <= type(self)._ATOM_LEN:
-            raise IndexError(
-                "Value index \
-                should range 1 to type(self)._ATOM_LEN"
-            )
-        return self._aux[type(self)._ATOM_BEGIN_POS + i - 1]
+        if i != 1:
+            raise IndexError("Value index should be 1")
+        return self.get_var_index()
 
     def get_var_index(self):
         """Gets the index of the Boolean variable."""
-        return self.get_atom_value(1)
+        if not self.is_var_atom():
+            raise Exception("The formula is not a Boolean variable.")
+        return self._aux[0]
 
     def is_var_atom(self):
         """Is the formula a Boolean variable ?"""
@@ -105,8 +107,7 @@ class Prop(AbsProp):
 
         The name of a variable symbol is defined as follows::
 
-            <var_symb>::= <alpha_lower> (<alpha_lower> | <digit> | "_")* "@" \
-            <decimal_literal>
+            <var_symb>::= <alpha_lower> (<alpha_lower> | <digit> | "_")*
             <alpha_lower>::= ["a"-"z"]
             <digit>::= ["0"-"9"]
             <decimal_literal>::= ["1"-"9"](["0"-"9"])*
@@ -128,15 +129,15 @@ class Prop(AbsProp):
         that binary operations are left-associative, unary operation
         is right-associative.
         """
+        if formula_str.strip() == "":
+            raise Exception("no formula given")
 
         # The following tokens are suppressed in the parsed result.
         COMMA = pp.Suppress(cls.get_comma_tag())
         LPAREN = pp.Suppress(cls.get_lparen_tag())
         RPAREN = pp.Suppress(cls.get_rparen_tag())
 
-        # Variable symbols are strings that match [a-z][a-z0-9_]*@[0-9]\+ .
-        VAR = pp.Combine(pp.Word(pp.srange("[a-z]"), pp.srange("[a-z0-9_]")) \
-                + "@" + pp.Word(pp.srange("[0-9]"), pp.srange("[0-9]")))
+        VAR = pp.Word(pp.srange("[a-z_]"), pp.srange("[a-z0-9_]"))
 
         TRUE = pp.Literal(cls.get_true_const_tag())
         FALSE = pp.Literal(cls.get_false_const_tag())
@@ -157,14 +158,6 @@ class Prop(AbsProp):
         @VAR.set_parse_action
         def action_var(string, location, tokens):
             assert len(tokens) == 1, f"{tokens}"
-            res = tokens[0].split("@")
-            assert len(res) == 2 and res[1].isdigit()
-            NameMgr.lookup_index(res[0])
-            if int(res[1]) < 1:
-                raise Exception(
-                    "Positional index of tokens[0] "
-                    + "must be greater than or equal to 1."
-                )
             return cls.var(NameMgr.lookup_index(tokens[0]))
 
         @CONST_REL.set_parse_action
@@ -217,7 +210,7 @@ class Prop(AbsProp):
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""
         if self.is_var_atom():
-            prop_index = self.get_atom_value(1)
+            prop_index = self.get_var_index()
             return f"{NameMgr.lookup_name(prop_index)}"
         return super().make_str_pre_step()
 
@@ -236,6 +229,6 @@ class Prop(AbsProp):
     def make_node_str_step(self) -> str:
         """Makes string of this object for DOT print."""
         if self.is_var_atom():
-            prop_index = self.get_atom_value(1)
+            prop_index = self.get_var_index()
             return f'"{NameMgr.lookup_name(prop_index)}"'
         return super().make_node_str_step()

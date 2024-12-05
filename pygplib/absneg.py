@@ -7,6 +7,13 @@ from .baserelst import BaseRelSt
 class AbsNeg(AbsExpr):
     """Class of abstract expressions with true and false and negation only.
 
+    ::
+
+        Node           |  self._aux[0]  | self._aux[1] 
+        ---------------|----------------|--------------
+        True  constant |  -             | -
+        False constant |  -             | -
+
     Attributes:
         _NEG:   string, representing logical negation.
         _TRUE_CONST:    string, representing true.
@@ -66,24 +73,30 @@ class AbsNeg(AbsExpr):
     # Instance Methods
     def is_neg_term(self) -> bool:
         """Is the top-most operator the logical negation ?"""
+        warn_msg = "`is_neg_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_neg()
+
+    def is_neg(self) -> bool:
+        """Is the top-most operator the logical negation ?"""
         return self.get_tag() == type(self)._NEG
 
     def is_true_atom(self) -> bool:
-        """Is it the true atom ?"""
+        """Is it the true constant atom ?"""
         return self.get_tag() == type(self)._TRUE_CONST
 
     def is_false_atom(self) -> bool:
-        """Is it the false atom ?"""
+        """Is it the false constant atom ?"""
         return self.get_tag() == type(self)._FALSE_CONST
 
     def is_const_atom(self) -> bool:
-        """Is it either the true atom or the false atom ?"""
+        """Is it either the true constant atom or the false constant atom ?"""
         return self.is_true_atom() or self.is_false_atom()
 
     def compute_nnf_step(self, negated: bool, s: list[list], t: list[list]) -> None:
         """Perform NNF computation for this object."""
 
-        if self.is_neg_term():  # not not f = f
+        if self.is_neg():  # not not f = f
             f = self.get_operand(1)
             s.append([not negated, f])
             t.append([1, lambda x: x])
@@ -101,7 +114,7 @@ class AbsNeg(AbsExpr):
     def compute_cnf_step(self, igen: IndexGen, \
         assoc: dict, cnf: list) -> None:
         """Performs CNF computation for this object."""
-        if self.is_neg_term():  # a <-> -b :  (-a or -b) and (a or b)
+        if self.is_neg():  # a <-> -b :  (-a or -b) and (a or b)
             a = igen.get_next()
             b = assoc[id(self.get_operand(1))]
 
@@ -118,7 +131,7 @@ class AbsNeg(AbsExpr):
 
     def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce computation for this object."""
-        if self.is_neg_term():
+        if self.is_neg():
             g = assoc[id(self.get_operand(1))]
             if g.is_true_atom():
                 assoc[id(self)] = type(self).false_const()
@@ -135,7 +148,7 @@ class AbsNeg(AbsExpr):
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""
-        if self.is_neg_term():
+        if self.is_neg():
             out = "(" + type(self).get_neg_tag() + " "
             return out
         if self.is_true_atom():
@@ -146,7 +159,7 @@ class AbsNeg(AbsExpr):
 
     def make_str_in_step(self) -> str:
         """Makes string in infix order for this object."""
-        if self.is_neg_term():
+        if self.is_neg():
             return ""
         if self.is_true_atom():
             return ""
@@ -156,7 +169,7 @@ class AbsNeg(AbsExpr):
 
     def make_str_post_step(self) -> str:
         """Makes string in postfix order for this object."""
-        if self.is_neg_term():
+        if self.is_neg():
             return ")"
         if self.is_true_atom():
             return ""
@@ -166,7 +179,7 @@ class AbsNeg(AbsExpr):
 
     def make_node_str_step(self) -> str:
         """Makes string of this object for DOT print."""
-        if self.is_neg_term():
+        if self.is_neg():
             return "NOT"
         if self.is_true_atom():
             return "T"

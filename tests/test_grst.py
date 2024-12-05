@@ -1,414 +1,489 @@
+import random
+
 from pygplib import GrSt, NameMgr, Fog, Prop
 from pygplib import op
+from . import solver
+from . import graph
+from . import tools
+
+def test_vertex_to_object():
+    NameMgr.clear()
+    for step in range(3):
+        n = 5 # number of vertices
+        m = random.randint(0,(n*(n-1))//2) # number of edges
+        G = graph.random_graph(n,m,
+            reject_isolated_vertex=True,
+            reject_isolated_edge=True)
+        if G is None:
+            continue
+        vertex_list = list(G.all_vertices())
+        edge_list   = list(G.all_edges())
+        random.shuffle(vertex_list)
+        random.shuffle(edge_list)
+        for encoding in ["direct", "log", "vertex", "edge", "clique"]:
+            st = GrSt(vertex_list, edge_list, encoding=encoding)
+            for v in vertex_list:
+                w = st.vertex_to_object(v)
+                assert v == st.object_to_vertex(w)
+            for w in st.domain:
+                v = st.object_to_vertex(w)
+                assert w == st.vertex_to_object(v)
 
 
-def test_init():
-    # tests for exceptional graphs
+def test_domain_direct_enc():
     tests = [
-        (
-            # vertex_list
-            [],  # empty graph!
-            # edge_list
-            [],
-            # encoding
-            "edge",  # in edge-encoding
-        ),
-        (
-            # vertex_list
-            [],  # empty graph!
-            # edge_list
-            [],
-            # encoding
-            "clique", # in clique-encoding
-        ),
-        (
-            # vertex_list
-            [],  # empty graph!
-            # edge_list
-            [],
-            # encoding
-            "direct",  # in direct-encoding
-        ),
-        (
-            # vertex_list
-            [],  # empty graph!
-            # edge_list
-            [],
-            # encoding
-            "log",  # in log-encoding
-        ),
-        (
-            #  V1---V2
-            #  |
-            #  V3   V4
-            #
-            # vertex_list
-            [1,2,3,4],
-            # edge_list
-            [
-                (1,2),
-                (1,3),  # one isolated vertex
-            ],
-            # encoding
-            "edge",     # in edge-encoding
-        ),
-        (
-            #  V1---V2
-            #  |
-            #  V3   V4
-            #
-            # vertex_list
-            [1,2,3,4],
-            # edge_list
-            [
-                (1,2),
-                (1,3),  # one isolated vertex
-            ],
-            # encoding
-            "clique",     # in clique-encoding
-        ),
-        (
-            #  V1---V2
-            #
-            # vertex_list
-            [1,2],
-            # edge_list
-            [(1,2)],  # isolated edge
-            # encoding
-            "direct", # in direct-encoding
-        ),
-        (
-            #  V1---V2
-            #
-            # vertex_list
-            [1,2],
-            # edge_list
-            [(1,2)],  # isolated edge
-            # encoding
-            "log", # in log-encoding
-        ),
-        (
-            #  V1    V2
-            #
-            # vertex_list
-            [1,2],
-            # edge_list
-            [],       # multiple isolated vertices
-            # encoding
-            "direct", # in direct-encoding
-        ),
-        (
-            #  V1    V2
-            #
-            # vertex_list
-            [1,2],
-            # edge_list
-            [],       # multiple isolated vertices
-            # encoding
-            "log", # in log-encoding
-        ),
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 0 0 0
+        # 2| 0 1 0 0
+        # 3| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # expected
+        ((1,),(2,),(3,),(4,))
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 0 0 0
+        # 2| 0 1 0 0
+        # 3| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # expected
+        ((1,),(2,),(3,),(4,))
+    ),
     ]
-
-    for vertex_list, edge_list, encoding in tests:
-        NameMgr.clear()
-        st = GrSt(vertex_list,edge_list,encoding=encoding)
-        check_grst_object(st, vertex_list, edge_list, encoding)
-
-    # tests over encoding and prefix
-    #  V1---V2
-    #  |   /
-    #  |  /
-    #  | /
-    #  V3---V5
-    #
-    # vertex_list
-    vertex_list = [2,3,1,5]
-    # edge_list
-    edge_list = [
-        (2,1),
-        (3,1),
-        (2,3),
-        (3,5),
-    ]
-    for encoding in ["edge", "clique", "direct", "log"]:
-        for prefix in ["V", "WW", "V12"]:
-            NameMgr.clear()
-            st = GrSt(vertex_list,edge_list,encoding=encoding)
-            check_grst_object(st, vertex_list, edge_list, encoding)
-
-def check_grst_object(st: GrSt, \
-    vertex_list: list, edge_list: list, encoding: str):
-    assert st._encoding == encoding
-    assert set(vertex_list) == set(st._verts)
-    for edge in edge_list:
-        assert tuple(sorted(edge)) in st._edges
-    for edge in st._edges:
-        assert edge in edge_list or tuple([edge[1],edge[0]]) in edge_list
-
-    for v in vertex_list:
-        assert st.object_to_vertex(st.vertex_to_object(v)) == v
-    for obj in st.domain:
-        assert st.vertex_to_object(st.object_to_vertex(obj)) == obj
-
-    for u in st._verts:
-        for v in st._verts:
-            if tuple(sorted([u,v])) in st._edges:
-                assert st.adjacent(\
-                        st.vertex_to_object(u), \
-                        st.vertex_to_object(v))
-            else:
-                assert not st.adjacent(\
-                        st.vertex_to_object(u), \
-                        st.vertex_to_object(v))
-            if u == v:
-                assert st.equal(\
-                        st.vertex_to_object(u), \
-                        st.vertex_to_object(v))
-            else:
-                assert not st.equal(\
-                        st.vertex_to_object(u), \
-                        st.vertex_to_object(v))
-
-def test_interpretation():
-    tests = [
-        (
-            #  | 1 2
-            #--------
-            # 1| 1 0
-            # 2| 1 1
-            # 3| 0 1
-            #
-            # formula
-            "x=y",
-            # vertex list
-            [1,2,3],
-            # edge list
-            [(1,2), (2,3)],
-            # encoding
-            "edge",
-            # first symbol
-            "x",
-            # second symbol
-            "V1",
-            # expected adjacency between first and second symbols
-            "(((x@1 & T) | (x@2 & F)) & (~ ((x@1 <-> T) & (x@2 <-> F))))",
-            # expected equality between first and second symbols
-            "((x@1 <-> T) & (x@2 <-> F))",
-            # expected domain constraint of first symbol
-            "(((x@1 & (~ x@2)) | (x@1 & x@2)) | ((~ x@1) & x@2))",
-        ),
-        (
-            #  | 1 2
-            #--------
-            # 1| 1 0
-            # 2| 1 1
-            # 3| 0 1
-            #
-            # formula
-            "x=y",
-            # vertex list
-            [1,2,3],
-            # edge list
-            [(1,2), (2,3)],
-            # encoding
-            "edge",
-            # first symbol
-            "x",
-            # second symbol
-            "y",
-            # expected adjacency between first and second symbols
-            "(((x@1 & y@1) | (x@2 & y@2)) & (~ ((x@1 <-> y@1) & (x@2 <-> y@2))))",
-            # expected equality between first and second symbols
-            "((x@1 <-> y@1) & (x@2 <-> y@2))",
-            # expected domain constraint of first symbol
-            "(((x@1 & (~ x@2)) | (x@1 & x@2)) | ((~ x@1) & x@2))",
-        ),
-        (
-            #  | 1 2 3
-            #---------
-            # 1| 1
-            # 2|   1
-            # 3|     1
-            #
-            # formula
-            "x=y",
-            # vertex list
-            [1,2,3],
-            # edge list
-            [(1,2), (2,3)],
-            # encoding
-            "direct",
-            # first symbol
-            "x",
-            # second symbol
-            "V1",
-            # expected adjacency between first and second symbols
-            "(((x@1 & F) | (x@2 & T)) | ((x@2 & F) | (x@3 & F)))",  # equiv. x@2 & T, meaning x = V2
-            # expected equality between first and second symbols
-            "(((x@1 <-> T) & (x@2 <-> F)) & (x@3 <-> F))",
-            # expected domain constraint of first symbol
-            "((((~ (x@1 & x@2)) & (~ (x@1 & x@3))) & (~ (x@2 & x@3))) & ((x@1 | x@2) | x@3))",
-        ),
-        (
-            #  | 1 2
-            #-------
-            # 1| 
-            # 2| 1
-            # 3| 0 1
-            #
-            # formula
-            "x=y",
-            # vertex list
-            [1,2,3],
-            # edge list
-            [(1,2), (2,3)],
-            # encoding
-            "log",
-            # first symbol
-            "x",
-            # second symbol
-            "V1",
-            # expected adjacency between first and second symbols
-            "((((((x@1 <-> F) & (x@2 <-> F)) & (F <-> T)) & (F <-> F)) | ((((x@1 <-> T) & (x@2 <-> F)) & (F <-> F)) & (F <-> F))) | (((((x@1 <-> T) & (x@2 <-> F)) & (F <-> F)) & (F <-> T)) | ((((x@1 <-> F) & (x@2 <-> T)) & (F <-> T)) & (F <-> F))))", # equiv. x@1 <-> T & x@2 <-> F, meaning x = V2
-            # expected equality between first and second symbols
-            "((x@1 <-> F) & (x@2 <-> F))",
-            # expected domain constraint of first symbol
-            "((((~ F) & (x@1 <-> F)) & (x@2 <-> T)) | (~ x@2))",
-        ),
-        (
-            #  | 1 2 3
-            #---------
-            # 1| 1
-            # 2|   1
-            # 3|     1
-            #
-            # formula
-            "x=y",
-            # vertex list
-            [1,2,3],
-            # edge list
-            [(1,2), (2,3)],
-            # encoding
-            "direct",
-            # first symbol
-            "x",
-            # second symbol
-            "y",
-            # expected adjacency between first and second symbols
-            "(((x@1 & y@2) | (x@2 & y@1)) | ((x@2 & y@3) | (x@3 & y@2)))",
-            # expected equality between first and second symbols
-            "(((x@1 <-> y@1) & (x@2 <-> y@2)) & (x@3 <-> y@3))",
-            # expected domain constraint of first symbol
-            "((((~ (x@1 & x@2)) & (~ (x@1 & x@3))) & (~ (x@2 & x@3))) & ((x@1 | x@2) | x@3))",
-        ),
-        (
-            #  | 1 2
-            #-------
-            # 1| 
-            # 2| 1
-            # 3|   1
-            #
-            # formula
-            "x=y",
-            # vertex list
-            [1,2,3],
-            # edge list
-            [(1,2), (2,3)],
-            # encoding
-            "log",
-            # first symbol
-            "x",
-            # second symbol
-            "y",
-            # expected adjacency between first and second symbols
-            "((((((x@1 <-> F) & (x@2 <-> F)) & (y@1 <-> T)) & (y@2 <-> F)) | ((((x@1 <-> T) & (x@2 <-> F)) & (y@1 <-> F)) & (y@2 <-> F))) | (((((x@1 <-> T) & (x@2 <-> F)) & (y@1 <-> F)) & (y@2 <-> T)) | ((((x@1 <-> F) & (x@2 <-> T)) & (y@1 <-> T)) & (y@2 <-> F))))",
-            # expected equality between first and second symbols
-            "((x@1 <-> y@1) & (x@2 <-> y@2))",
-            # expected domain constraint of first symbol
-            "((((~ F) & (x@1 <-> F)) & (x@2 <-> T)) | (~ x@2))",
-        ),
-        (
-            #  | 1 2 3
-            #---------
-            # 1| 1 0 1
-            # 2| 1 1 0
-            # 3| 0 0 1
-            # 4| 0 1 0
-            #
-            # formula
-            "x=y", 
-            # vertex list
-            [1,2,3,4], 
-            # edge list
-            [(1,2), (2,4),(1,3)],
-            # encoding
-            "edge",
-            # first symbol
-            "x",
-            # second symbol
-            "y",
-            # expected adjacency between first and second symbols
-            "((((x@1 & y@1) | (x@2 & y@2)) | (x@3 & y@3)) & (~ (((x@1 <-> y@1) & (x@2 <-> y@2)) & (x@3 <-> y@3))))",
-            # expected equality between first and second symbols
-            "(((x@1 <-> y@1) & (x@2 <-> y@2)) & (x@3 <-> y@3))",
-            # expected domain constraint of first symbol
-            "(((((x@1 & (~ x@2)) & x@3) | ((x@1 & x@2) & (~ x@3))) | (((~ x@1) & (~ x@2)) & x@3)) | (((~ x@1) & x@2) & (~ x@3)))",
-        ),
-        (
-            #  | 1 2 3
-            #---------
-            # 1| 1 0 1
-            # 2| 1 1 0
-            # 3| 0 0 1
-            # 4| 0 1 0
-            #
-            # formula
-            "x=y", 
-            # vertex list
-            [1,2,3,4], 
-            # edge list
-            [(1,2), (2,4),(1,3)],
-            # encoding
-            "direct",
-            # first symbol
-            "x",
-            # second symbol
-            "y",
-            # expected adjacency between first and second symbols
-            "((((x@1 & y@2) | (x@2 & y@1)) | ((x@2 & y@4) | (x@4 & y@2))) | ((x@1 & y@3) | (x@3 & y@1)))",
-            # expected equality between first and second symbols
-            "((((x@1 <-> y@1) & (x@2 <-> y@2)) & (x@3 <-> y@3)) & (x@4 <-> y@4))",
-            # expected domain constraint of first symbol
-            "(((((((~ (x@1 & x@2)) & (~ (x@1 & x@3))) & (~ (x@1 & x@4))) & (~ (x@2 & x@3))) & (~ (x@2 & x@4))) & (~ (x@3 & x@4))) & (((x@1 | x@2) | x@3) | x@4))",
-        ),
-    ]
-
     NameMgr.clear()
 
-    for test_str, vertex_list, edge_list, encoding, first_var, second_var,\
-        expected_edg, expected_eq, expected_domain in tests:
-        f = Fog.read(test_str)
-        st = GrSt(vertex_list, edge_list, encoding=encoding)
+    for vertex_list, edge_list, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="direct")
+        assert st._codes == st.vertex_to_object(expected)
 
-        g = st.encode_edg(\
-                    NameMgr.lookup_index(first_var),\
-                    NameMgr.lookup_index(second_var)\
-        )
-        res = op.to_str(g)
-        assert res == expected_edg, f"{res}, {expected_edg}"
+def test_domain_log_enc():
+    tests = [
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2
+        #   ----
+        # 1| 0 0
+        # 2| 1 0
+        # 3| 0 1
+        # 4| 1 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # expected
+        ((),(1,),(2,),(1,2))
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2
+        #   ----
+        # 1| 0 0
+        # 2| 1 0
+        # 3| 0 1
+        # 4| 1 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # expected
+        ((),(1,),(2,),(1,2))
+    ),
+    ]
+    NameMgr.clear()
 
-        g = st.encode_eq(\
-                    NameMgr.lookup_index(first_var),\
-                    NameMgr.lookup_index(second_var)\
-        )
-        res = op.to_str(g)
-        assert res == expected_eq, f"{res}, {expected_eq}"
+    for vertex_list, edge_list, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="log")
+        assert st._codes == st.vertex_to_object(expected)
 
-        g = st.compute_domain_constraint(NameMgr.lookup_index(first_var))
-        res = op.to_str(g)
-        assert res == expected_domain, f"{res}, {expected_domain}"
+def test_domain_vertex_enc():
+    tests = [
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 1 1 0
+        # 2| 0 1 1 0
+        # 3| 0 0 1 1
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # expected
+        ((1,2,3),(2,3),(3,4),(4,))
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 0 1 0
+        # 2| 0 1 1 1
+        # 3| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # expected
+        ((1,3),(2,3,4),(3,),(4,))
+    ),
+    ]
+    NameMgr.clear()
 
-def test__compute_log_relation():
+    for vertex_list, edge_list, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="vertex")
+        assert st._codes == st.vertex_to_object(expected)
+
+def test_domain_edge_enc():
+    tests = [
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 1 0 0
+        # 2| 1 0 1 0
+        # 3| 0 1 1 1
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # expected
+        ((1,2),(1,3),(2,3,4),(4,))
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2 3
+        #   ------
+        # 1| 1 0 0
+        # 2| 0 1 1
+        # 3| 1 1 0
+        # 4| 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # expected
+        ((1,),(2,3),(1,2),(3,))
+    ),
+    ]
+    NameMgr.clear()
+
+    for vertex_list, edge_list, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="edge")
+        assert st._codes == st.vertex_to_object(expected)
+
+def test_domain_clique_enc():
+    tests = [
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2 3
+        #   ------
+        # 1| 1 1 0
+        # 2| 1 0 0
+        # 3| 1 1 1
+        # 4| 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # ecc
+        ((1,2,3),(1,3),(3,4)),
+        # expected
+        ((1,2),(1,),(1,2,3),(3,))
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2 3
+        #   ------
+        # 1| 1 0 0
+        # 2| 0 1 1
+        # 3| 1 1 0
+        # 4| 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # ecc
+        ((1,3),(2,3),(2,4)),
+        # expected
+        ((1,),(2,3),(1,2),(3,))
+    ),
+    ]
+    NameMgr.clear()
+
+    for vertex_list, edge_list, ecc, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="clique", ecc=ecc)
+        assert st._codes == st.vertex_to_object(expected)
+
+def test__compute_relation_direct_enc():
+    tests = [
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 0 0 0
+        # 2| 0 1 0 0
+        # 3| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # expected
+        ((1,),(2,),(3,),(4,))
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 0 0 0
+        # 2| 0 1 0 0
+        # 3| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # expected
+        ((1,),(2,),(3,),(4,))
+    ),
+    ]
+    NameMgr.clear()
+
+    for vertex_list, edge_list, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="direct")
+        res = st._compute_relation_direct_enc()
+        assert res == st.vertex_to_object(expected)
+
+def test__compute_relation_edge_enc():
+    tests = [
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 1 0 0
+        # 2| 1 0 1 0
+        # 3| 0 1 1 1
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # expected
+        ((1,2),(1,3),(2,3),(3,4))
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2 3
+        #   ------
+        # 1| 1 0 0
+        # 2| 0 1 1
+        # 3| 1 1 0
+        # 4| 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # expected
+        ((1,3),(2,3),(2,4))
+    ),
+    ]
+    NameMgr.clear()
+
+    for vertex_list, edge_list, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="edge")
+        res = st._compute_relation_edge_enc()
+        assert res == st.vertex_to_object(expected)
+
+def test__compute_relation_clique_enc():
+    tests = [
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2 3
+        #   ------
+        # 1| 1 1 0
+        # 2| 1 0 0
+        # 3| 1 1 1
+        # 4| 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # ecc
+        ((1,2,3),(1,3),(3,4)),
+        # expected
+        ((1,2,3),(1,3),(3,4))
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2 3
+        #   ------
+        # 1| 1 0 0
+        # 2| 0 1 1
+        # 3| 1 1 0
+        # 4| 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # ecc
+        ((1,3),(2,3),(2,4)),
+        # expected
+        ((1,3),(2,3),(2,4))
+    ),
+    ]
+    NameMgr.clear()
+
+    for vertex_list, edge_list, ecc, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="clique", ecc=ecc)
+        res = st._compute_relation_clique_enc()
+        assert res == st.vertex_to_object(expected)
+
+def test__compute_relation_vertex_enc():
+    tests = [
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 1 1 0
+        # 2| 0 1 1 0
+        # 3| 0 0 1 1
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # expected
+        ((1,),(1,2),(1,2,3),(3,4))
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 0 1 0
+        # 2| 0 1 1 1
+        # 3| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # expected
+        ((1,),(2,),(1,2,3),(2,4))
+    ),
+    ]
+    NameMgr.clear()
+
+    for vertex_list, edge_list, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="vertex")
+        res = st._compute_relation_vertex_enc()
+        assert res == st.vertex_to_object(expected)
+
+def test__compute_relation_log_enc():
     tests = [
     (
         # 1|00
@@ -420,19 +495,6 @@ def test__compute_log_relation():
         [1,2,3,4],
         # expected
         ((2,4),(3,4))
-    ),
-    (
-        # vertex_list
-        [],
-        # expected
-        (),
-    ),
-    (
-        # 1|0
-        # vertex_list
-        [1],
-        # expected
-        ()
     ),
     (
         # 1|0
@@ -535,8 +597,461 @@ def test__compute_log_relation():
         ((4,2,7,8),(3,2,6,8),(5,7,6,8),(9,))
     ),
     ]
+    NameMgr.clear()
 
     for vertex_list, expected in tests:
         st = GrSt(vertex_list, [], encoding="log")
-        res = st._compute_log_relation()
-        assert res == expected
+        res = st._compute_relation_log_enc()
+        assert res == st.vertex_to_object(expected)
+
+def test_out_neighborhood():
+    tests = [
+        (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    3 2 1 4
+        #   --------
+        # 3| 1 1 1 1 
+        # 2| 0 1 1 0
+        # 1| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [3,2,1,4],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # out_neighborhood
+        {1:(), 2:(1,), 3:(2,1,4), 4:()}
+        ),
+        (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    3 2 1 4
+        #   --------
+        # 3| 1 1 1 0
+        # 2| 0 1 0 1 
+        # 1| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [3,2,1,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # out_neighborhood
+        {1:(), 2:(4,), 3:(2,1), 4:()}
+        ),
+    ]
+    NameMgr.clear()
+    for vertex_list, edge_list, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="vertex")
+        for v in vertex_list:
+            assert sorted(st._out_neighborhood(st.vertex_to_object(v)))\
+                == sorted(st.vertex_to_object(expected[v])), {f"v={v}"}
+
+def test_in_neighborhood():
+    tests = [
+        (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        #    1 2 4 3
+        #   --------
+        # 1| 1 1 0 1
+        # 2| 0 1 0 1
+        # 4| 0 0 1 1
+        # 3| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,4,3],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # in_neighborhood
+        {1:(), 2:(1,), 3:(1,2,4), 4:()}
+        ),
+        (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        #    1 2 3 4
+        #   --------
+        # 1| 1 0 1 0
+        # 2| 0 1 1 1
+        # 3| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # vertex_list
+        [1,2,3,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # in_neighborhood
+        {1:(), 2:(), 3:(1,2), 4:(2,)}
+        ),
+    ]
+    NameMgr.clear()
+    for vertex_list, edge_list, expected in tests:
+        st = GrSt(vertex_list, edge_list, encoding="vertex")
+        for v in vertex_list:
+            assert sorted(st._in_neighborhood(st.vertex_to_object(v)))\
+                == sorted(st.vertex_to_object(expected[v])), f"v={v}"
+
+def test_lt():
+    tests = [
+    (
+        #  1--2
+        #  | /
+        #  |/
+        #  3--4
+        #
+        # direct-encoding
+        #    2 1 4 3
+        #   --------
+        # 2| 1 0 0 0
+        # 1| 0 1 0 0
+        # 4| 0 0 1 0
+        # 3| 0 0 0 1
+        #
+        # log-encoding
+        #   ----
+        # 2| 0 0
+        # 1| 1 0
+        # 4| 0 1
+        # 3| 1 1
+        #  
+        # vertex-encoding
+        #    2 1 4 3
+        #   --------
+        # 2| 1 1 0 1
+        # 1| 0 1 0 1
+        # 4| 0 0 1 1
+        # 3| 0 0 0 1
+        #
+        # edge-encoding
+        #   --------
+        # 2| 1 0 1 0
+        # 1| 1 1 0 0
+        # 4| 0 0 0 1
+        # 3| 0 1 1 1
+        #
+        # clique-encoding
+        #   ------
+        # 2| 1 0 0
+        # 1| 1 1 0
+        # 4| 0 0 1
+        # 3| 1 1 1
+        #
+        # vertex_list
+        [2,1,4,3],
+        # edge_list
+        [(1,2),(1,3),(2,3),(3,4)],
+        # ecc
+        ((1,2,3),(1,3),(3,4)),
+        # expected
+        {"direct":(2,1,4,3),
+        "log":(2,1,4,3),
+        "vertex":(3,1,2,4),
+        "edge":(1,2,4,3),
+        "clique":(2,1,4,3)}
+    ),
+    (
+        #  1  2
+        #  | /|
+        #  |/ |
+        #  3  4
+        #
+        # direct-encoding
+        #    3 2 1 4
+        #   --------
+        # 3| 1 0 0 0
+        # 2| 0 1 0 0
+        # 1| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # log-encoding
+        #   ----
+        # 3| 0 0
+        # 2| 1 0
+        # 1| 0 1
+        # 4| 1 1
+        #
+        # vertex-encoding
+        #    3 2 1 4
+        #   --------
+        # 3| 1 1 1 0
+        # 2| 0 1 0 1
+        # 1| 0 0 1 0
+        # 4| 0 0 0 1
+        #
+        # edge-encoding
+        #   ------
+        # 3| 1 1 0
+        # 2| 0 1 1
+        # 1| 1 0 0
+        # 4| 0 0 1
+        #
+        # clique-encoding
+        #   ------
+        # 3| 1 1 0
+        # 2| 0 1 1
+        # 1| 1 0 0
+        # 4| 0 0 1
+        #
+        # vertex_list
+        [3,2,1,4],
+        # edge_list
+        [(1,3),(2,3),(2,4)],
+        # ecc
+        ((1,3),(2,3),(2,4)),
+        # expected
+        {"direct":(3,2,1,4),
+        "log":(3,2,1,4),
+        "vertex":(1,3,4,2),
+        "edge":(1,3,4,2),
+        "clique":(1,3,4,2),}
+    ),
+    ]
+    NameMgr.clear()
+    for encoding in ["direct", "log", "vertex", "clique"]:
+        for vertex_list, edge_list, ecc, expected in tests:
+            _test_lt(encoding, vertex_list, edge_list, ecc, expected[encoding])
+
+def _test_lt(encoding, vertex_list, edge_list, ecc, expected):
+        st = GrSt(vertex_list, edge_list, encoding=encoding, ecc=ecc)
+        res = st.sorted(st.domain)
+        # test lt
+        assert tuple(map(st.object_to_vertex,res)) == expected,\
+            f"enc={encoding},V={vertex_list},E={edge_list},expected={expected}"
+
+def test_adjacent():
+    tests = [
+        ("direct", False,False),
+        ("log",    False,False),
+        ("vertex", False,False),
+        ("edge",   True, True),
+        ("clique", True, True),
+     ]
+    for step in range(10):
+        for encoding,reject_isolated_vertex,reject_isolated_edge in tests:
+            _test_adjacent(encoding=encoding,
+                reject_isolated_vertex=reject_isolated_vertex,
+                reject_isolated_edge=reject_isolated_edge)
+
+def _test_adjacent(encoding: str,
+    reject_isolated_vertex: bool,
+    reject_isolated_edge: bool):
+    NameMgr.clear()
+    n = 5 # number of vertices
+    m = random.randint(0,(n*(n-1))//2) # number of edges
+    G = graph.random_graph(n,m,
+        reject_isolated_vertex=reject_isolated_vertex,
+        reject_isolated_edge=reject_isolated_edge)
+    if G is None:
+        return
+    vertex_list = list(G.all_vertices())
+    edge_list   = list(G.all_edges())
+    random.shuffle(vertex_list)
+    random.shuffle(edge_list)
+    msg  = "V=["+",".join(map(str,vertex_list))+"]"
+    msg += ",E=["+",".join(map(str,edge_list))+"]"
+    msg += f",encoding={encoding}"
+    st = GrSt(vertex_list, edge_list, encoding=encoding, msg=msg)
+    for v in vertex_list:
+        for w in vertex_list:
+            vv = st.vertex_to_object(v)
+            ww = st.vertex_to_object(w)
+            if (v,w) in edge_list or (w,v) in edge_list:
+                assert st.adjacent(vv,ww), msg+f"(v,w)={v},{w}"
+                assert st.adjacent(ww,vv), msg+f"(v,w)={v},{w}"
+            else:
+                assert not st.adjacent(vv,ww), msg+f"(v,w)={v},{w}"
+                assert not st.adjacent(ww,vv), msg+f"(v,w)={v},{w}"
+
+def test_be_eq():
+    tests = [
+        ("direct", False,False),
+        ("log",    False,False),
+        ("vertex", False,False),
+        ("edge",   True, True),
+        ("clique", True, True),
+     ]
+    for step in range(3):
+        for encoding,reject_isolated_vertex,reject_isolated_edge in tests:
+            _test_be_eq(encoding=encoding,
+                reject_isolated_vertex=reject_isolated_vertex,
+                reject_isolated_edge=reject_isolated_edge)
+
+def _test_be_eq(encoding: str,
+    reject_isolated_vertex: bool,
+    reject_isolated_edge: bool):
+    NameMgr.clear()
+    x = NameMgr.lookup_index("x")
+    y = NameMgr.lookup_index("y")
+    n = 5 # number of vertices
+    m = random.randint(0,(n*(n-1))//2) # number of edges
+    G = graph.random_graph(n,m,
+        reject_isolated_vertex=reject_isolated_vertex,
+        reject_isolated_edge=reject_isolated_edge)
+    if G is None:
+        return
+    vertex_list = list(G.all_vertices())
+    edge_list   = list(G.all_edges())
+    random.shuffle(vertex_list)
+    random.shuffle(edge_list)
+    msg  = "V=["+",".join(map(str,vertex_list))+"]"
+    msg += ",E=["+",".join(map(str,edge_list))+"]"
+    msg += f",encoding={encoding}"
+    st = GrSt(vertex_list, edge_list, encoding=encoding, msg=msg)
+    for u in st.domain:
+        for v in st.domain:
+            f = st.be_eq(u, v)
+            if u == v:
+                solver.assert_satisfiable(f,msg=msg)
+            else:
+                solver.assert_unsatisfiable(f,msg=msg)
+
+def test_be_edg():
+    tests = [
+        ("direct", False,False),
+        ("log",    False,False),
+        ("vertex", False,False),
+        ("edge",   True, True),
+        ("clique", True, True),
+     ]
+    for step in range(3):
+        for encoding,reject_isolated_vertex,reject_isolated_edge in tests:
+            _test_be_edg(encoding=encoding,
+                reject_isolated_vertex=reject_isolated_vertex,
+                reject_isolated_edge=reject_isolated_edge)
+
+def _test_be_edg(encoding: str,
+    reject_isolated_vertex: bool,
+    reject_isolated_edge: bool):
+    NameMgr.clear()
+    x = NameMgr.lookup_index("x")
+    y = NameMgr.lookup_index("y")
+    n = 5 # number of vertices
+    m = random.randint(0,(n*(n-1))//2) # number of edges
+    G = graph.random_graph(n,m,
+        reject_isolated_vertex=reject_isolated_vertex,
+        reject_isolated_edge=reject_isolated_edge)
+    if G is None:
+        return
+    vertex_list = list(G.all_vertices())
+    edge_list   = list(G.all_edges())
+    random.shuffle(vertex_list)
+    random.shuffle(edge_list)
+    msg  = "V=["+",".join(map(str,vertex_list))+"]"
+    msg += ",E=["+",".join(map(str,edge_list))+"]"
+    msg += f",encoding={encoding}"
+    st = GrSt(vertex_list, edge_list, encoding=encoding, msg=msg)
+    for u in st._G.all_vertices():
+       for v in st._G.all_vertices():
+            pair = f",(u,v)={st.object_to_vertex(u)},{st.object_to_vertex(v)}"
+            f = st.be_edg(u,v)
+            f = Prop.land(f, st.compute_auxiliary_constraint(Fog.edg(u,v)))
+            if (u,v) in st._G.all_edges() or (v,u) in st._G.all_edges():
+                solver.assert_satisfiable(f,msg=msg+pair)
+            else:
+                solver.assert_unsatisfiable(f,msg=msg+pair)
+
+def test_be_lt():
+    tests = [
+        ("direct", False,False),
+        ("log",    False,False),
+        ("vertex", False,False),
+        ("edge",   True, True),
+        ("clique", True, True),
+     ]
+    for step in range(3):
+        for encoding,reject_isolated_vertex,reject_isolated_edge in tests:
+            _test_be_lt(encoding=encoding,
+                reject_isolated_vertex=reject_isolated_vertex,
+                reject_isolated_edge=reject_isolated_edge)
+
+def _test_be_lt(encoding: str,
+    reject_isolated_vertex: bool,
+    reject_isolated_edge: bool):
+    NameMgr.clear()
+    x = NameMgr.lookup_index("x")
+    y = NameMgr.lookup_index("y")
+    n = 5 # number of vertices
+    m = random.randint(0,(n*(n-1))//2) # number of edges
+    G = graph.random_graph(n,m,
+        reject_isolated_vertex=reject_isolated_vertex,
+        reject_isolated_edge=reject_isolated_edge)
+    if G is None:
+        return
+    vertex_list = list(G.all_vertices())
+    edge_list   = list(G.all_edges())
+    random.shuffle(vertex_list)
+    random.shuffle(edge_list)
+    msg  = "V=["+",".join(map(str,vertex_list))+"]"
+    msg += ",E=["+",".join(map(str,edge_list))+"]"
+    msg += f",encoding={encoding}"
+    st = GrSt(vertex_list, edge_list, encoding=encoding, msg=msg)
+    for u in st._G.all_vertices():
+        for v in st._G.all_vertices():
+            f = st.be_lt(u,v)
+            if st.lt(u,v):
+                solver.assert_satisfiable(f,msg=msg)
+            else:
+                solver.assert_unsatisfiable(f,msg=msg)
+
+def test_be_domain():
+    tests = [
+        ("direct", False,False),
+        ("log",    False,False),
+        ("vertex", False,False),
+        ("edge",   True, True),
+        ("clique", True, True),
+     ]
+    for step in range(3):
+        for encoding,reject_isolated_vertex,reject_isolated_edge in tests:
+            _test_be_domain(encoding=encoding,
+                reject_isolated_vertex=reject_isolated_vertex,
+                reject_isolated_edge=reject_isolated_edge)
+
+def _test_be_domain(encoding: str,
+    reject_isolated_vertex: bool,
+    reject_isolated_edge: bool):
+    NameMgr.clear()
+    x = NameMgr.lookup_index("x") # first-order variable
+    n = 5 # number of vertices
+    m = random.randint(0,(n*(n-1))//2) # number of edges
+    G = graph.random_graph(n,m,
+        reject_isolated_vertex=reject_isolated_vertex,
+        reject_isolated_edge=reject_isolated_edge)
+    if G is None:
+        return
+    vertex_list = list(G.all_vertices())
+    edge_list   = list(G.all_edges())
+    random.shuffle(vertex_list)
+    random.shuffle(edge_list)
+    msg  = "V=["+",".join(map(str,vertex_list))+"]"
+    msg += ",E=["+",".join(map(str,edge_list))+"]"
+    msg += f",encoding={encoding}"
+    st = GrSt(vertex_list, edge_list, encoding=encoding, msg=msg)
+    px = st.get_boolean_var_list(x)
+    f  = st.compute_domain_constraint(x)
+    for n in range(2**st.code_length):
+        g = f
+        code = tuple([i+1 for i in range(st.code_length)\
+                    if tools.binary_code(n,st.code_length)[i] == 1])
+        for i in range(st.code_length):
+            if i+1 in code:
+                g = Prop.land(g,Prop.var(px[i]))
+            else:
+                g = Prop.land(g,Prop.neg(Prop.var(px[i])))
+        if code in st._codes:
+            solver.assert_satisfiable(g,msg=msg)
+        else:
+            solver.assert_unsatisfiable(g,msg=msg)

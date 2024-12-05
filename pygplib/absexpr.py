@@ -30,6 +30,7 @@ class IndexGen:
 
     def clear(self, init_index: int = 1) -> None:
         """Clears index with init_index."""
+        self._init = init_index
         self._next = init_index
 
 
@@ -55,8 +56,6 @@ class AbsExpr:
         _COMMA: string to represent comma.
         _LPAREN:    string to represent left parentheses.
         _RPAREN:    string to represent right parentheses.
-        _ATOM_LEN:  length of atom part in aux field.
-        _AUX_LEN:   length of aux field.
 
     Note:
         The current implementation, for the sake of simplicity,
@@ -78,9 +77,6 @@ class AbsExpr:
     _LPAREN = "("
     _RPAREN = ")"
 
-    _ATOM_LEN = 0
-    _AUX_LEN = _ATOM_LEN
-
     @classmethod
     def get_lparen_tag(cls) -> str:
         """Gets tag of left parenthesis."""
@@ -98,15 +94,15 @@ class AbsExpr:
 
     # Constructor-related Methods
     @staticmethod
-    def _to_key(tag: str, left: "AbsExpr", right: "AbsExpr", aux: tuple) -> str:
+    def _to_key(tag: str, left: "AbsExpr", right: "AbsExpr", aux: tuple, cls_name: str) -> str:
         """Makes key to identify expression."""
-        tup = (tag, id(left), id(right)) + aux
+        tup = (tag, id(left), id(right)) + aux + (cls_name,)
         return ",".join(map(str, tup))
 
     @classmethod
-    def _normalize_aux(cls, aux: tuple) -> tuple:
+    def _normalize_aux(cls, tag: str, aux: tuple) -> tuple:
         """This method might be overridden to normalize atom operands' order"""
-        return (0,) * cls._AUX_LEN if aux == () else aux
+        return aux
 
     def __new__(
         cls, tag: str, left: "AbsExpr" = None, right: "AbsExpr" = None, aux: tuple = ()
@@ -122,8 +118,10 @@ class AbsExpr:
             right:  right operand
             aux:    information regarding bound variable and atom
         """
-        aux = cls._normalize_aux(aux)
-        key = cls._to_key(tag, left, right, aux)
+        aux = cls._normalize_aux(tag, aux)
+        # Add class name to distinguish between formulas of different classes:
+        # for instance, Prop.true_const() from Fog.true_const().
+        key = cls._to_key(tag, left, right, aux, cls_name = cls.__name__)
 
         if key in cls._unique_table:
             return cls._unique_table[key]
@@ -157,13 +155,31 @@ class AbsExpr:
 
     def is_atom_term(self) -> bool:
         """Is it an atomic formula ?"""
+        warn_msg = "`is_atom_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_atom()
+
+    def is_atom(self) -> bool:
+        """Is it an atomic formula ?"""
         return self.get_tag() in type(self)._ATOM_TAGS
 
     def is_unop_term(self) -> bool:
         """Is the top-most operator a unary operation ?"""
+        warn_msg = "`is_unop_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_unop()
+
+    def is_unop() -> bool:
+        """Is the top-most operator a unary operation ?"""
         return self.get_tag() in type(self)._UNOP_TAGS
 
     def is_binop_term(self) -> bool:
+        """Is the top-most operator a binary operation ?"""
+        warn_msg = "`is_binop_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_binop()
+
+    def is_binop(self) -> bool:
         """Is the top-most operator a binary operation ?"""
         return self.get_tag() in type(self)._BINOP_TAGS
 
@@ -175,7 +191,8 @@ class AbsExpr:
         (as keys for _unique_table) to decide whether formulas
         are syntatically identical.
         """
-        return type(self)._to_key(self._tag, self._left, self._right, self._aux)
+        return type(self)._to_key(self._tag, self._left, self._right,\
+            self._aux, cls_name=type(self).__name__)
 
     def compute_nnf_step(self, negated: bool, s: list[list], t: list[list])\
         -> None:

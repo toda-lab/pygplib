@@ -2,10 +2,15 @@
 
 from typing import overload
 
+from simpgraph import SimpGraph
+
 from .name     import NameMgr
 from .symrelst import SymRelSt
 from .prop     import Prop
+from .fog     import Fog
 from .ecc      import Ecc
+from . import constraints
+from . import op
 
 class GrSt(SymRelSt):
     """Manages graph structure for interpreting formulas (and index-mapping).
@@ -37,65 +42,163 @@ class GrSt(SymRelSt):
     """
     _EDGE_ENC   = "edge"
     _CLIQUE_ENC = "clique"
+    _VERTEX_ENC = "vertex"
     _DIRECT_ENC = "direct"
     _LOG_ENC    = "log"
-    _ENCODING   = (_EDGE_ENC, _CLIQUE_ENC, _DIRECT_ENC, _LOG_ENC,)
+    _ENCODING   = (_EDGE_ENC, _CLIQUE_ENC, _VERTEX_ENC, _DIRECT_ENC, _LOG_ENC,)
 
     def __init__(self, vertex_list: list, edge_list: list, \
-                    encoding: str = "edge", prefix: str = "V"):
+                    encoding: str = "edge", prefix: str = "V", ecc = None,\
+                    msg: str = ""):
         """Initialize a graph structure.
 
         Args:
             vertex_list: list of distinct vertices in an arbitrary order
             edge_list: list of distinct edges in an arbitrary order
-            encoding: type of encoding ("edge", "clique", "direct", "log")
+            encoding: type of encoding ("edge", "clique", "vertex", "direct", "log")
             prefix: prefix of vertex name, which must be uppercase.
+            ecc: edge clique cover for clique encoding
+            msg: message printed when assertion failed
         """
+        if len(vertex_list) == 0:
+            raise Exception(f"no vertex given: "+msg)
         for edge in edge_list:
             if len(edge) != 2:
-                raise Exception(f"edge must be of size 2: {edge}")
+                raise Exception(f"edge must be of size 2: "+msg)
             if edge[0] == edge[1]:
-                raise Exception(f"loop is not allowed: {edge}")
+                raise Exception(f"loop is not allowed: "+msg)
             if edge[0] not in vertex_list\
                 or edge[1] not in vertex_list:
-                raise Exception(f"invalid vertex found: {edge}")
+                raise Exception(f"invalid vertex found: "+msg)
         if encoding not in type(self)._ENCODING:
-            raise Exception(f"unsupported encoding type: {encoding}")
+            raise Exception(f"unsupported encoding type: "+msg)
         if not (prefix.isalpha() and prefix.isupper()):
             raise Exception(\
-                "All characters must be alphabetic and uppercase letters")
+                "All characters in prefix must be alphabetic and uppercase letters: "+msg)
 
+        self._relation_dict = {
+            type(self)._EDGE_ENC:  self._compute_relation_edge_enc,
+            type(self)._CLIQUE_ENC:self._compute_relation_clique_enc,
+            type(self)._VERTEX_ENC:self._compute_relation_vertex_enc,
+            type(self)._DIRECT_ENC:self._compute_relation_direct_enc,
+            type(self)._LOG_ENC:   self._compute_relation_log_enc,
+        }
+        self._be_eq_dict = {
+            type(self)._EDGE_ENC:  self._be_eq_arbit_enc,
+            type(self)._CLIQUE_ENC:self._be_eq_arbit_enc,
+            type(self)._VERTEX_ENC:self._be_eq_arbit_enc,
+            type(self)._DIRECT_ENC:self._be_eq_arbit_enc,
+            type(self)._LOG_ENC:   self._be_eq_arbit_enc,
+        }
+        self._be_edg_dict = {
+            type(self)._EDGE_ENC:  self._be_edg_edge_enc,
+            type(self)._CLIQUE_ENC:self._be_edg_edge_enc,
+            type(self)._VERTEX_ENC:self._be_edg_vertex_enc,
+            type(self)._DIRECT_ENC:self._be_edg_direct_enc,
+            type(self)._LOG_ENC:   self._be_edg_arbit_enc,
+            }
+        self._be_domain_dict = {
+            type(self)._EDGE_ENC:  self._be_domain_arbit_enc,
+            type(self)._CLIQUE_ENC:self._be_domain_arbit_enc,
+            type(self)._VERTEX_ENC:self._be_domain_vertex_enc,
+            type(self)._DIRECT_ENC:self._be_domain_direct_enc,
+            type(self)._LOG_ENC:   self._be_domain_log_enc,
+        }
+        self._be_aux_const_dict = {
+            type(self)._EDGE_ENC:  self._compute_auxiliary_constraint_edge_enc,
+            type(self)._CLIQUE_ENC:self._compute_auxiliary_constraint_clique_enc,
+            type(self)._VERTEX_ENC:self._compute_auxiliary_constraint_vertex_enc,
+            type(self)._DIRECT_ENC:self._compute_auxiliary_constraint_direct_enc,
+            type(self)._LOG_ENC:   self._compute_auxiliary_constraint_log_enc,
+        }
+
+        self._ecc = ecc
+        self._domain_enc_dict = {}
+        """dictionary of auxiliary Boolean variables for the domain constraint"""
+        self._domain_dec_dict = {} 
+        """Inverse mapping of _domain_enc_dict"""
+        self._edg_enc_dict = {}
+        """dictionary of auxiliary Boolean variables for the edg relation"""
+        self._edg_dec_dict = {} 
+        """Inverse mapping of _edg_enc_dict"""
+        self._le_enc_dict = {}
+        """dictionary of auxiliary Boolean variables for the order relation"""
+        self._le_dec_dict = {} 
+        """Inverse mapping of _le_enc_dict"""
         self._encoding = encoding
         """encoding type"""
         self._prefix   = prefix
         """prefix of vertex name"""
+        self._vertex_to_index_dict = {}
+        self._index_to_vertex_dict = {}
         for vertex in vertex_list:
-            NameMgr.lookup_index(self._prefix + f"{vertex}")
+            i = NameMgr.lookup_index(self._prefix + f"{vertex}")
+            self._vertex_to_index_dict[vertex] = i 
+            self._index_to_vertex_dict[i] = vertex
         self._verts = tuple(vertex_list)
         """vertices"""
         self._edges = tuple([tuple(sorted(edge)) for edge in edge_list])
         """edges"""
         if len(set(self._verts)) != len(vertex_list):
-            raise Exception(f"duplicate vertex found: {vertex_list}")
+            raise Exception(f"duplicate vertex found: "+msg)
         if len(set(self._edges)) != len(edge_list):
-            raise Exception(f"duplicate edge found: {edge_list}")
+            raise Exception(f"duplicate edge found: "+msg)
         # vertex_to_object() and object_to_vertex() are now available!
-
         objects = self.vertex_to_object(self._verts)
-        if self._encoding == type(self)._EDGE_ENC:
-            relation = self.vertex_to_object(self._edges)
-        elif self._encoding == type(self)._CLIQUE_ENC:
-            ecc = Ecc(self._verts, self._edges).compute_separating_ecc()
-            relation = self.vertex_to_object(ecc)
-        elif self._encoding == type(self)._DIRECT_ENC:
-            relation = self.vertex_to_object(tuple([(v,) for v in self._verts]))
-        elif self._encoding == type(self)._LOG_ENC:
-            relation = self.vertex_to_object(self._compute_log_relation())
-        else:
-            raise Exception(f"invalid encoding type: {self._encoding}")
-        super().__init__(objects, relation)
+        relation = self._relation_dict[self._encoding]()
+        super().__init__(objects, relation,msg=msg)
+        assert self.code_length > 0
+        self._G = SimpGraph()
+        for v in objects:
+            self._G.add_vertex(v)
+        for v,w in self.vertex_to_object(self._edges):
+            self._G.add_edge(v,w)
+        if len(objects) > 0:
+            self.max_v = objects[0]
+            for v in objects[1:]:
+                if self.lt(self.max_v, v):
+                    self.max_v = v
 
-    def _compute_log_relation(self) -> tuple:
+    def _out_neighborhood(self, v: int):
+        assert v in self.domain
+        return tuple([w for w in self.domain
+            if self._object_to_pos(w)+1 in self.get_code(v) and v != w])
+
+    def _in_neighborhood(self, v: int):
+        assert v in self.domain
+        return tuple([w for w in self.domain
+            if self._object_to_pos(v)+1 in self.get_code(w) and v != w])
+
+    def _compute_relation_edge_enc(self):
+        return self.vertex_to_object(self._edges)
+
+    def _compute_relation_clique_enc(self):
+        if self._ecc is None:
+            return self.vertex_to_object(
+                Ecc(self._verts, self._edges).compute_separating_ecc())
+        else:
+            return self.vertex_to_object(self._ecc)
+
+    def _compute_relation_vertex_enc(self):
+        pos_dict = {}
+        in_neigh_dict = {}
+        for i,v in enumerate(self._verts):
+            pos_dict[v] = i
+            in_neigh_dict[v] = {v}
+        for v,w in self._edges:
+            if pos_dict[v] < pos_dict[w]:
+                v,w = w,v
+            assert pos_dict[v] > pos_dict[w]
+            in_neigh_dict[v].add(w)
+        res = []
+        for v in self._verts:
+            res.append(tuple(sorted(in_neigh_dict[v])))
+        return self.vertex_to_object(tuple(res))
+
+    def _compute_relation_direct_enc(self):
+        return self.vertex_to_object(tuple([(v,) for v in self._verts]))
+
+    def _compute_relation_log_enc(self):
         """Computes relation for log-encoding.
 
         Computes relation for log-encoding, where each relation instance means
@@ -114,7 +217,7 @@ class GrSt(SymRelSt):
                                 for j in range(n*i, min(n*(i+1),N))]\
                                     ))
             n *= 2
-        return tuple(res)
+        return self.vertex_to_object(tuple(res))
 
     def vertex_to_object_int(self, vertex: int) -> int:
         """Converts vertex to object (constant symbol index).
@@ -126,11 +229,7 @@ class GrSt(SymRelSt):
         """
         if vertex not in self._verts:
             raise Exception(f"invalid vertex: {vertex}")
-        name = self._prefix + f"{vertex}" 
-        if not NameMgr.has_index(name):
-            raise Exception(f"vertex: {vertex} not registered to NameMgr.")
-        obj = NameMgr.lookup_index(name)
-        return obj
+        return self._vertex_to_index_dict[vertex]
 
     def vertex_to_object_tuple(self, tup: tuple[int]) -> tuple[int]:
         """Converts vertex to object (constant symbol index).
@@ -174,227 +273,426 @@ class GrSt(SymRelSt):
         Returns:
             index of vertex.
         """
-        name = NameMgr.lookup_name(obj)
-        if not (name.find(self._prefix) == 0 \
-            and name[len(self._prefix) :].isdigit()):
-            raise Exception(f"{name} is not vertex name")
+        return self._index_to_vertex_dict[obj]
 
-        return int(name[len(self._prefix) :])
-
-    def adjacent(self, i: int, j: int) -> bool:
+    def adjacent(self, x: int, y: int) -> bool:
         """Determines if constants (meaning vertices) are adjacent.
 
         Args:
-            i: constant symbol index (meaning vertex)
-            j: constant symbol index (meaning vertex)
+            x: constant symbol index (meaning vertex)
+            y: constant symbol index (meaning vertex)
         Returns:
             True if adjacent, and False otherwise.
         """
-        if i not in self.domain:
-            raise Exception(f"{i} is not a domain object.")
-        if j not in self.domain:
-            raise Exception(f"{j} is not a domain object.")
-        u = self.object_to_vertex(i)
-        v = self.object_to_vertex(j)
-        return tuple(sorted([u,v])) in self._edges
+        if x not in self.domain:
+            raise Exception(f"{x} is not a domain object.")
+        if y not in self.domain:
+            raise Exception(f"{y} is not a domain object.")
+        return x in self._G.adj_vertices(y)
 
-    def equal(self, i: int, j: int) -> bool:
+    def equal(self, x: int, y: int) -> bool:
         """Determines if constants (meaning vertices) are equal with each other.
 
         Args:
-            i: constant symbol index (meaning vertex)
-            j: constant symbol index (meaning vertex)
+            x: constant symbol index (meaning vertex)
+            y: constant symbol index (meaning vertex)
         Returns:
             True if equal, and False otherwise.
         """
-        if i not in self.domain:
-            raise Exception(f"{i} is not a domain object.")
-        if j not in self.domain:
-            raise Exception(f"{j} is not a domain object.")
-        return i == j
+        if x not in self.domain:
+            raise Exception(f"{x} is not a domain object.")
+        if y not in self.domain:
+            raise Exception(f"{y} is not a domain object.")
+        return x == y
 
-    def _get_lit_list(self, index: int) -> list[Prop]:
+    def lt(self, x: int, y: int) -> bool:
+        """Determines if x is less than y in an internal order of vertices.
+
+        Args:
+            x: constant symbol index (meaning vertex)
+            y: constant symbol index (meaning vertex)
+        Returns:
+            True if x is less than y, and False otherwise.
+        """
+        px = self._get_lit_list(x)
+        py = self._get_lit_list(y)
+        for i in range(self.code_length):
+            i = self.code_length-i-1
+            assert px[i] in [Prop.true_const(), Prop.false_const()]
+            assert py[i] in [Prop.true_const(), Prop.false_const()]
+            if px[i] == py[i]:
+                continue
+            if px[i] == Prop.false_const() and py[i] == Prop.true_const():
+                return True
+            if px[i] == Prop.true_const()  and py[i] == Prop.false_const():
+                return False
+        return False
+
+    def sorted(self, li: list) -> None:
+        """Sorts list of constants (i.e. vertices) in an increasing order.
+
+        Args:
+            li: list of constant indices
+
+        Returns:
+            Sorted list
+        """
+        res = list(li)
+        n   = len(res)
+        # selection sort based on the order defined by self.lt
+        for i in range(n):
+            minpos = i
+            minval = res[i]
+            for j in range(i+1,n):
+                if self.lt(res[j],minval):
+                    minpos = j
+                    minval = res[j]
+            tmp      = res[i]
+            res[i]   = minval
+            res[minpos] = tmp
+        # check sorted
+        for i in range(n-1):
+            assert self.lt(res[i],res[i+1]) or self.equal(res[i],res[i+1])
+        return res
+
+    def _get_lit_list(self, x: int) -> list[Prop]:
         """Gets list of literals, given a symbol index.
 
         Args:
-            index: symbol index (constant symbol or variable symbol)
+            x: symbol index (constant symbol or variable symbol)
         Returns:
             list of literals (Boolean variables' objects of Prop class)
         """
-        if index in self.domain:
-            return [Prop.true_const() if pos+1 in self.get_code(index) \
+        if x in self.domain:
+            return [Prop.true_const() if i+1 in self.get_code(x) \
                         else Prop.false_const() \
-                            for pos in range(self.code_length)]
+                            for i in range(self.code_length)]
         else:
-            return [Prop.var(j) for j in self.get_boolean_var_list(index)]
+            return [Prop.var(p) for p in self.get_boolean_var_list(x)]
 
-    def encode_eq(self, i: int, j: int) -> Prop:
+    def encode_eq(self, x: int, y: int) -> Prop:
         """Encodes predicate of equality relation, given two symbols.
 
         Args:
-            i: symbol index (constant symbol or variable symbol)
-            j: symbol index (constant symbol or variable symbol)
+            x: symbol index (constant symbol or variable symbol)
+            y: symbol index (constant symbol or variable symbol)
         Returns:
             formula object of Prop class
         """
-        li = Prop.bitwise_binop(Prop.get_iff_tag(), \
-                                self._get_lit_list(i), \
-                                self._get_lit_list(j))
+        warn_msg = "`encode_eq()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.be_eq(x,y)
+
+    def be_eq(self, x: int, y: int) -> Prop:
+        """Encodes predicate of equality relation, given two symbols.
+
+        Args:
+            x: symbol index (constant symbol or variable symbol)
+            y: symbol index (constant symbol or variable symbol)
+        Returns:
+            formula object of Prop class
+        """
+        return self._be_eq_dict[self._encoding](x,y)
+
+    def _be_eq_arbit_enc(self, x: int, y: int) -> Prop:
+        px = self._get_lit_list(x)
+        py = self._get_lit_list(y)
+        li = [Prop.iff(px[i],py[i]) for i in range(self.code_length)]
         return Prop.binop_batch(Prop.get_land_tag(), li)
 
-    def encode_edg(self, i: int, j: int) -> Prop:
+    def encode_edg(self, x: int, y: int) -> Prop:
         """Encodes predicate of adjacency relation, given two symbols.
 
         Args:
-            i: symbol index (constant symbol or variable symbol)
-            j: symbol index (constant symbol or variable symbol)
+            x: symbol index (constant symbol or variable symbol)
+            y: symbol index (constant symbol or variable symbol)
         Returns:
             formula object of Prop class
         """
-        res = None
-        if self._encoding in (type(self)._EDGE_ENC, type(self)._CLIQUE_ENC):
-            li = Prop.bitwise_binop(Prop.get_land_tag(), \
-                                    self._get_lit_list(i), \
-                                    self._get_lit_list(j))
-            res = Prop.binop_batch(Prop.get_lor_tag(), li)
-            res = Prop.land(res, Prop.neg(self.encode_eq(i,j)))
-        elif self._encoding == type(self)._DIRECT_ENC:
-            lit_list = [self._get_lit_list(i),self._get_lit_list(j)]
-            or_li = [Prop.lor(\
-                    Prop.land(\
-                        lit_list[0][self._object_to_pos(edge[0])],\
-                        lit_list[1][self._object_to_pos(edge[1])]),\
-                    Prop.land(\
-                        lit_list[0][self._object_to_pos(edge[1])],\
-                        lit_list[1][self._object_to_pos(edge[0])]),\
-                        )\
-                        for edge in self.vertex_to_object(self._edges)]
-            res = Prop.binop_batch(Prop.get_lor_tag(), or_li)
-        elif self._encoding == type(self)._LOG_ENC:
-            or_li = []
-            for edge in self.vertex_to_object(self._edges):
-                li = Prop.bitwise_binop(Prop.get_iff_tag(), \
-                                self._get_lit_list(i), \
-                                self._get_lit_list(edge[0]))
-                li += Prop.bitwise_binop(Prop.get_iff_tag(), \
-                                self._get_lit_list(j), \
-                                self._get_lit_list(edge[1]))
-                res0 = Prop.binop_batch(Prop.get_land_tag(), li)
-                li = Prop.bitwise_binop(Prop.get_iff_tag(), \
-                                self._get_lit_list(i), \
-                                self._get_lit_list(edge[1]))
-                li += Prop.bitwise_binop(Prop.get_iff_tag(), \
-                                self._get_lit_list(j), \
-                                self._get_lit_list(edge[0]))
-                res1 = Prop.binop_batch(Prop.get_land_tag(), li)
-                or_li.append(Prop.lor(res0,res1))
-            res = Prop.binop_batch(Prop.get_lor_tag(), or_li)
+        warn_msg = "`encode_eq()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.be_edg(x,y)
+
+    def be_edg(self, x: int, y: int) -> Prop:
+        """Encodes predicate of adjacency relation, given two symbols.
+
+        Args:
+            x: symbol index (constant symbol or variable symbol)
+            y: symbol index (constant symbol or variable symbol)
+        Returns:
+            formula object of Prop class
+        """
+        return self._be_edg_dict[self._encoding](x,y)
+
+    def _be_edg_edge_enc(self, x: int, y: int) -> Prop:
+        px = self._get_lit_list(x)
+        py = self._get_lit_list(y)
+        li = [Prop.land(px[i],py[i]) for i in range(self.code_length)]
+        return Prop.land(Prop.neg(self.be_eq(x,y)),
+            Prop.binop_batch(Prop.get_lor_tag(), li))
+
+    def _be_edg_direct_enc(self, x: int, y: int) -> Prop:
+        px = self._get_lit_list(x)
+        py = self._get_lit_list(y)
+        li = [Prop.lor(
+                Prop.land(
+                    px[self._object_to_pos(v)],
+                    py[self._object_to_pos(w)]),
+                Prop.land(
+                    px[self._object_to_pos(w)],
+                    py[self._object_to_pos(v)]))
+                    for v,w in self._G.all_edges()]
+        if len(li) == 0:
+            return Prop.false_const()
         else:
-            raise Exception(f"NotImplementedError")
-        return res
+            return Prop.land(Prop.neg(self.be_eq(x,y)),
+                Prop.binop_batch(Prop.get_lor_tag(), li))
+
+    def _be_edg_arbit_enc(self, x: int, y: int) -> Prop:
+        li = [Prop.lor(
+                Prop.land(
+                    self.be_eq(x,v),
+                    self.be_eq(y,w)),
+                Prop.land(
+                    self.be_eq(x,w),
+                    self.be_eq(y,v)))
+                    for v,w in self._G.all_edges()]
+        if len(li) == 0:
+            return Prop.false_const()
+        else:
+            return Prop.land(Prop.neg(self.be_eq(x,y)),
+                Prop.binop_batch(Prop.get_lor_tag(), li))
+
+    def _be_edg_vertex_enc(self, x: int, y: int) -> Prop:
+        def _aux_index(x: int, i: int) -> int:
+            if (x,i) not in self._edg_enc_dict:
+                v = NameMgr.get_aux_index()
+                assert v not in self._edg_dec_dict
+                self._edg_enc_dict[(x,i)] = v
+                self._edg_dec_dict[v] = (x,i)
+            return self._edg_enc_dict[(x,i)]
+        px = self._get_lit_list(x)
+        py = self._get_lit_list(y)
+        sx = [Prop.var(_aux_index(x,i))
+                    for i in range(self.code_length)]
+        sy = [Prop.var(_aux_index(y,i))
+                    for i in range(self.code_length)]
+        sx.append(Prop.false_const())
+        sy.append(Prop.false_const())
+        li = [
+            Prop.binop_batch(Prop.get_land_tag(),
+                [px[i],py[i],Prop.lor(Prop.neg(sx[i-1]),Prop.neg(sy[i-1]))])
+            for i in range(self.code_length)]
+        return Prop.land(Prop.neg(self.be_eq(x,y)),
+                Prop.binop_batch(Prop.get_lor_tag(), li))
+
+    def be_lt(self, x: int, y: int) -> Prop:
+        """Encodes predicate of less-than relation, given two symbols.
+
+        Args:
+            x: symbol index (constant symbol or variable symbol)
+            y: symbol index (constant symbol or variable symbol)
+        Returns:
+            formula object of Prop class
+        """
+        def _aux_index(x: int, y: int, i: int) -> int:
+            if (x,y,i) not in self._le_enc_dict:
+                v = NameMgr.get_aux_index()
+                assert v not in self._le_dec_dict
+                self._le_enc_dict[(x,y,i)] = v
+                self._le_dec_dict[v] = (x,y,i)
+            return self._le_enc_dict[(x,y,i)]
+        px = self._get_lit_list(x)
+        py = self._get_lit_list(y)
+        sx = [Prop.var(_aux_index(x,y,i))
+                    for i in range(self.code_length)]
+        sx.append(Prop.false_const())
+        li = [
+            Prop.land(
+                Prop.implies(
+                    Prop.neg(sx[i]),
+                    Prop.iff(px[i],py[i])),
+                Prop.iff(
+                    sx[i],
+                    Prop.lor(
+                        sx[i+1],
+                        Prop.land(Prop.neg(px[i]),py[i]))))
+            for i in range(self.code_length)]
+        li.append(Prop.iff(sx[0],Prop.true_const()))
+        return Prop.binop_batch(Prop.get_land_tag(), li)
 
     def encode_T(self) -> Prop: 
+        """Encodes true constant object of Fog class to Prop object."""
+        warn_msg = "`encode_T()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.be_T()
+
+    def be_T(self) -> Prop: 
         """Encodes true constant object of Fog class to Prop object."""
         return Prop.true_const()
 
     def encode_F(self) -> Prop:
         """Encodes false constant object of Fog class to Prop object."""
+        warn_msg = "`encode_F()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.be_F()
+
+    def be_F(self) -> Prop:
+        """Encodes false constant object of Fog class to Prop object."""
         return Prop.false_const()
 
-    def compute_domain_constraint(self, var: int) -> Prop:
-        """Computes domain constraint for a first-order variable.
+    def compute_auxiliary_constraint(self, f: Fog) -> Prop:
+        """Auxiliary constraint encoder
 
         Args:
-            var: index of a first-order variable symbol
+            f: a first-order formula object of Fog class
         Returns:
             formula object of Prop class
         """
-        if not NameMgr.is_variable(var):
-            raise Exception(f"symbol index {var} is not a variable symbol")
-        res = None
-        if self._encoding in (type(self)._EDGE_ENC, type(self)._CLIQUE_ENC):
-            res = self._compute_domain_constraint_DNF(var)
-        elif self._encoding == type(self)._DIRECT_ENC:
-            res = self._compute_domain_constraint_direct_encoding(var)
-        elif self._encoding == type(self)._LOG_ENC:
-            res = self._compute_domain_constraint_log_encoding(var)
-        else:
-            raise Exception(f"NotImplementedError")
-        return res
+        return self._be_aux_const_dict[self._encoding](f)
+  
+    def _compute_auxiliary_constraint_direct_enc(self, f:Fog) -> Prop:
+        return Prop.true_const()
 
-    def _compute_domain_constraint_DNF(self, index: int)\
-        -> Prop:
-        """Computes a constraint in DNF for a given first-order variable
-        such that the variable runs over the domain of this structure.
+    def _compute_auxiliary_constraint_log_enc(self, f:Fog) -> Prop:
+        return Prop.true_const()
 
-        Args:
-            index: a first-order variable index
+    def _compute_auxiliary_constraint_edge_enc(self, f:Fog) -> Prop:
+        return Prop.true_const()
 
-        Returns:
-            Prop: Prop class object of the computed DNF constraint.
-        """
-        dnf = []
-        for obj in self.domain:
-            lits = self._get_lit_list(index)
-            term = [
-                lits[pos] if pos+1 in self.get_code(obj) \
-                else Prop.neg(lits[pos]) \
-                for pos in range(self.code_length)
-            ]
-            dnf.append(Prop.binop_batch(Prop.get_land_tag(), term))
-        return Prop.binop_batch(Prop.get_lor_tag(), dnf)
+    def _compute_auxiliary_constraint_clique_enc(self, f:Fog) -> Prop:
+        return Prop.true_const()
 
-    def _compute_domain_constraint_direct_encoding(self, index: int) -> Prop:
-        """Computes domain constraint for a first-order variable
-        (direct-encoding version).
+    def _compute_auxiliary_constraint_vertex_enc(self, f:Fog) -> Prop:
+        def _aux_index(x: int, i: int) -> int:
+            if (x,i) not in self._edg_enc_dict:
+                v = NameMgr.get_aux_index()
+                assert v not in self._edg_dec_dict
+                self._edg_enc_dict[(x,i)] = v
+                self._edg_dec_dict[v] = (x,i)
+            return self._edg_enc_dict[(x,i)]
+        # find all edg(x,y) occurring in f, wherre x and y are free variables
+        # or constants.
+        edg_set = set()
+        for i, g in op.generate_subformulas(f):
+            if i == 0:
+                if g.is_edg_atom():
+                    # edg(x,y)
+                    x = g.get_atom_arg(1)
+                    y = g.get_atom_arg(2)
+                    edg_set.add((x,y))
+        # compute all auxiliary constraints.
+        li = []
+        for x,y in edg_set:
+            px = self._get_lit_list(x)
+            py = self._get_lit_list(y)
+            sx = [Prop.var(_aux_index(x,i))
+                        for i in range(self.code_length)]
+            sy = [Prop.var(_aux_index(y,i))
+                        for i in range(self.code_length)]
+            sx.append(Prop.false_const())
+            sy.append(Prop.false_const())
+            li += [
+                Prop.iff(
+                    sx[i],
+                    Prop.lor(sx[i-1],Prop.land(Prop.neg(sx[i-1]),px[i])))
+                for i in range(self.code_length)]
+            li += [
+                Prop.iff(
+                    sy[i],
+                    Prop.lor(sy[i-1],Prop.land(Prop.neg(sy[i-1]),py[i])))
+                for i in range(self.code_length)]
+        return Prop.binop_batch(Prop.get_land_tag(), li) 
 
-        Args:
-            var: index of a first-order variable symbol
-        Returns:
-            formula object of Prop class
-        """
-        if self._encoding != type(self)._DIRECT_ENC:
-            raise Exception(\
-            f"encoding type {self._encoding} does not match with this method")
-
-        lits = self._get_lit_list(index)
-        # at least one constraint
-        at_least_one = Prop.binop_batch(Prop.get_lor_tag(), lits)
-        # at most one constraint
-        term = [Prop.neg(Prop.land(lits[i],lits[j])) \
-                    for i in range(len(lits))\
-                        for j in range(i+1,len(lits))]
-        at_most_one = Prop.binop_batch(Prop.get_land_tag(), term)
-        return Prop.land(at_most_one, at_least_one)
-
-    def _compute_domain_constraint_log_encoding(self, index: int) -> Prop:
-        """Computes domain constraint for a first-order variable
-        (log-encoding version).
+    def compute_domain_constraint(self, x: int) -> Prop:
+        """Domain constraint encoder
 
         Args:
-            var: index of a first-order variable symbol
+            x: index of a first-order variable symbol
         Returns:
             formula object of Prop class
         """
-        if self._encoding != type(self)._LOG_ENC:
-            raise Exception(\
-            f"encoding type {self._encoding} does not match with this method")
-        smaller_li = [Prop.false_const()]
-        greater_li = [Prop.true_const()]
+        return self._be_domain_dict[self._encoding](x)
 
-        smaller_li += self._get_lit_list(index)
-        greater_li += self._get_lit_list(\
-                            self.vertex_to_object(self._verts[-1]))
+    def _be_domain_arbit_enc(self, x: int) -> Prop:
+        """Domain constraint encoder for arbitrary encoding.
 
-        acc = []
-        while len(smaller_li) > 0:
-            if greater_li[0] == Prop.true_const():
-                li = [Prop.neg(smaller_li[0])]
-                li += Prop.bitwise_binop(Prop.get_iff_tag(),\
-                                        smaller_li[1:],\
-                                        greater_li[1:])
-                acc.append(Prop.binop_batch(Prop.get_land_tag(), li))
-            smaller_li = smaller_li[1:]
-            greater_li = greater_li[1:]
-        res = Prop.binop_batch(Prop.get_lor_tag(), acc)
-        return res
+        Args:
+            x: index of a first-order variable symbol
+        Returns:
+            formula object of Prop class
+        """
+        li = [self.be_eq(x,v) for v in self.domain]
+        return Prop.binop_batch(Prop.get_lor_tag(), li)
+
+    def _be_domain_direct_enc(self, x: int) -> Prop:
+        """Domain constraint encoder for direct-encoding.
+
+        Args:
+            x: index of a first-order variable symbol
+        Returns:
+            formula object of Prop class
+        """
+        li = self.get_boolean_var_list(x)
+        return Prop.land(
+                Prop.binop_batch(Prop.get_lor_tag(), list(map(Prop.var,li))),
+                Prop.read(constraints.at_most_r(li, r=1)))
+
+    def _be_domain_log_enc(self, x: int) -> Prop:
+        """Domain constraint encoder for log-encoding.
+
+        Args:
+            x: index of a first-order variable symbol
+        Returns:
+            formula object of Prop class
+        """
+        return Prop.lor(self.be_lt(x, self.max_v), self.be_eq(x, self.max_v))
+
+    def _be_domain_vertex_enc(self, x: int) -> Prop:
+        """Domain constraint encoder for vertex-encoding.
+
+        Args:
+            x: index of a first-order variable symbol
+        Returns:
+            formula object of Prop class
+        """
+        def _aux_index(x: int, i: int) -> int:
+            if (x,i) not in self._domain_enc_dict:
+                v = NameMgr.get_aux_index()
+                assert v not in self._domain_dec_dict
+                self._domain_enc_dict[(x,i)] = v
+                self._domain_dec_dict[v] = (x,i)
+            return self._domain_enc_dict[(x,i)]
+        def _conjunction_out_neighborhood(v: int, px: list) -> Prop:
+            N = self._out_neighborhood(v)
+            if len(N) == 0:
+                return Prop.true_const()
+            else:
+                return Prop.binop_batch(Prop.get_land_tag(),
+                    [px[self._object_to_pos(w)] for w in N])
+        def _disjunction_in_neighborhood(v: int, px: list, sx: list) -> Prop:
+            N = self._in_neighborhood(v)
+            if len(N) == 0:
+                return Prop.false_const()
+            else:
+                return Prop.binop_batch(Prop.get_lor_tag(),
+                    [Prop.land(px[self._object_to_pos(w)],
+                        sx[self._object_to_pos(w)]) for w in N])
+        px = self._get_lit_list(x)
+        sx = [Prop.var(_aux_index(x,i))
+                    for i in range(self.code_length)]
+        res = Prop.read(constraints.at_most_r(
+            [_aux_index(x,i) for i in range(self.code_length)], r=1))
+        li = [Prop.binop_batch(Prop.get_lor_tag(), sx), res]
+        li += [Prop.implies(sx[i],px[i]) for i in range(self.code_length)]
+        li += [Prop.implies(
+                Prop.land(px[self._object_to_pos(v)],
+                    sx[self._object_to_pos(v)]),
+                _conjunction_out_neighborhood(v,px))
+                for v in self._G.all_vertices()]
+        li += [Prop.implies(
+                Prop.land(px[self._object_to_pos(v)],
+                    Prop.neg(sx[self._object_to_pos(v)])),
+                _disjunction_in_neighborhood(v,px,sx))
+                for v in self._G.all_vertices()]
+        return Prop.binop_batch(Prop.get_land_tag(), li)

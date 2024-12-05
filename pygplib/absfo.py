@@ -9,6 +9,15 @@ from .baserelst import BaseRelSt
 class AbsFo(AbsProp):
     """First-order logic of graphs with true and false and no other atoms.
 
+    ::
+
+        Node           |  self._aux[0]  | self._aux[1] 
+        ---------------|----------------|--------------
+        True  constant |  -             | -
+        False constant |  -             | -
+        Quantifier     | index of       | -
+                       | bound variable |
+        
     Note:
         In the current implementation, syntactically identical subexpressions
         are shared. We have to keep it in mind that this might become source of
@@ -31,8 +40,6 @@ class AbsFo(AbsProp):
         _UNOP_TAGS: tuple of strings, representing types of uniary operator.
         _QF_TAGS:   tuple of strings, representing types of quantifier.
         _EXPR_TAGS: tuple of available tags in this class.
-        _BOUND_VAR_POS: beginning position of the field of bound variable.
-        _AUX_LEN:   length of aux field.
     """
 
     # Tag-related Variables and Methods
@@ -45,9 +52,6 @@ class AbsFo(AbsProp):
     _QF_TAGS = (_FORALL, _EXISTS)
 
     _EXPR_TAGS = _ATOM_TAGS + _BINOP_TAGS + _UNOP_TAGS + _QF_TAGS
-
-    _BOUND_VAR_POS = AbsProp._AUX_LEN
-    _AUX_LEN = 1 + AbsProp._AUX_LEN
 
     @classmethod
     def get_forall_tag(cls) -> str:
@@ -102,19 +106,37 @@ class AbsFo(AbsProp):
     # Instance Methods
     def get_bound_var(self) -> int:
         """Gets the index of bound variable."""
-        if not self.is_qf_term():
+        if not self.is_qf():
             raise Exception("The top-most operator of the formula is not quantifier.")
-        return self._aux[type(self)._BOUND_VAR_POS]
+        return self._aux[0]
 
     def is_forall_term(self) -> bool:
+        """Is the top-most operator the universal quantifier ?"""
+        warn_msg = "`is_forall_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_forall()
+
+    def is_forall(self) -> bool:
         """Is the top-most operator the universal quantifier ?"""
         return self.get_tag() == type(self)._FORALL
 
     def is_exists_term(self) -> bool:
         """Is the top-most operator the existential quantifier ?"""
+        warn_msg = "`is_exists_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_exists()
+
+    def is_exists(self) -> bool:
+        """Is the top-most operator the existential quantifier ?"""
         return self.get_tag() == type(self)._EXISTS
 
     def is_qf_term(self) -> bool:
+        """Is the top-most operator universal or existential quantifier ?"""
+        warn_msg = "`is_qf_term()` has been deprecated and will be removed in v3.0.0"
+        warnings.warn(warn_msg, UserWarning)
+        return self.is_qf()
+
+    def is_qf(self) -> bool:
         """Is the top-most operator universal or existential quantifier ?"""
         return self.get_tag() in type(self)._QF_TAGS
 
@@ -123,7 +145,7 @@ class AbsFo(AbsProp):
 
         f = self.get_operand(1)
 
-        if self.is_forall_term():  # not ! f = ? not f
+        if self.is_forall():  # not ! f = ? not f
             bvar = self.get_bound_var()
             t.append(
                 [
@@ -136,7 +158,7 @@ class AbsFo(AbsProp):
             s.append([negated, f])
             return
 
-        if self.is_exists_term():  # not ? f = ! not f
+        if self.is_exists():  # not ? f = ! not f
             bvar = self.get_bound_var()
             t.append(
                 [
@@ -155,7 +177,7 @@ class AbsFo(AbsProp):
         self, bound_vars: list, free_vars: list
     ) -> None:
         """Performs computation in prefix order for this object."""
-        if self.is_forall_term() or self.is_exists_term():
+        if self.is_forall() or self.is_exists():
             bound_vars.append(self.get_bound_var())
             return
 
@@ -163,14 +185,14 @@ class AbsFo(AbsProp):
         self, bound_vars: list, free_vars: list
     ) -> None:
         """Performs computation in postfix order for this object."""
-        if self.is_forall_term() or self.is_exists_term():
+        if self.is_forall() or self.is_exists():
             bound_vars.remove(self.get_bound_var())
             return
 
     def substitute_step(self, y: int, x: int, assoc: dict) -> None:
         """Performs substitution for this object."""
 
-        if self.is_neg_term():
+        if self.is_neg():
             g = assoc[id(self.get_operand(1))]
             assoc[id(self)] = type(self).neg(g)
             return
@@ -180,17 +202,17 @@ class AbsFo(AbsProp):
             return
 
         if (
-            self.is_land_term()
-            or self.is_lor_term()
-            or self.is_implies_term()
-            or self.is_iff_term()
+            self.is_land()
+            or self.is_lor()
+            or self.is_implies()
+            or self.is_iff()
         ):
             left = assoc[id(self.get_operand(1))]
             right = assoc[id(self.get_operand(2))]
             assoc[id(self)] = type(self).binop(self.get_tag(), left, right)
             return
 
-        if self.is_forall_term() or self.is_exists_term():
+        if self.is_forall() or self.is_exists():
             bvar = self.get_bound_var()
             if bvar == x:
                 assoc[id(self)] = self
@@ -204,7 +226,7 @@ class AbsFo(AbsProp):
     def reduce_formula_step(self, assoc: dict, st: BaseRelSt) -> None:
         """Performs reduce compuation for this object."""
 
-        if self.is_forall_term():
+        if self.is_forall():
             bvar = self.get_bound_var()
             g = assoc[id(self.get_operand(1))]
 
@@ -226,7 +248,7 @@ class AbsFo(AbsProp):
             assoc[id(self)] = type(self).forall(g, bvar)
             return
 
-        if self.is_exists_term():
+        if self.is_exists():
             bvar = self.get_bound_var()
             g = assoc[id(self.get_operand(1))]
 
@@ -252,10 +274,10 @@ class AbsFo(AbsProp):
 
     def make_str_pre_step(self) -> str:
         """Makes string in prefix order for this object."""
-        if self.is_forall_term() or self.is_exists_term():
+        if self.is_forall() or self.is_exists():
             out = "("
             out += ( \
-                type(self).get_forall_tag() if self.is_forall_term() \
+                type(self).get_forall_tag() if self.is_forall() \
                                        else type(self).get_exists_tag()\
             )
             out += " "
@@ -266,20 +288,20 @@ class AbsFo(AbsProp):
 
     def make_str_in_step(self) -> str:
         """Makes string in infix order for this object."""
-        if self.is_forall_term() or self.is_exists_term():
+        if self.is_forall() or self.is_exists():
             return ""
         return super().make_str_in_step()
 
     def make_str_post_step(self) -> str:
         """Makes string in postfix order for this object."""
-        if self.is_forall_term() or self.is_exists_term():
+        if self.is_forall() or self.is_exists():
             return ")"
         return super().make_str_post_step()
 
     def make_node_str_step(self) -> str:
         """Makes string of this object for DOT print."""
-        if self.is_forall_term() or self.is_exists_term():
+        if self.is_forall() or self.is_exists():
             bvar = self.get_bound_var()
             name = NameMgr.lookup_name(bvar)
-            return f'"! [{name}] :"' if self.is_forall_term() else f'"? [{name}] :"'
+            return f'"! [{name}] :"' if self.is_forall() else f'"? [{name}] :"'
         return super().make_node_str_step()

@@ -252,7 +252,7 @@ def test_format():
         assert test_form == res_form
 
 
-def test_generator():
+def test_generate_subformulas():
     tests = [
         (
             "T",
@@ -336,7 +336,7 @@ def test_generator():
         pos0 = 0
         pos1 = 0
         pos2 = 0
-        for i, g in op.generator(res):
+        for i, g in op.generate_subformulas(res):
             if i == 0:
                 assert pos0 < len(prefix_expected)
                 assert op.to_str(g) == prefix_expected[pos0]
@@ -421,7 +421,7 @@ def test_generator():
         pos0 = 0
         pos1 = 0
         pos2 = 0
-        for i, g in op.generator(res, skip_shared=True):
+        for i, g in op.generate_subformulas(res, skip_shared=True):
             if i == 0:
                 assert pos0 < len(prefix_expected)
                 assert op.to_str(g) == prefix_expected[pos0]
@@ -729,85 +729,3 @@ def test_substitute():
         res = op.substitute(form, op1, op2)
         res_str = op.to_str(res)
         assert res_str == expected, f"{res_str}, {expected}"
-
-
-def test_perform_boolean_encoding():
-    tests = [
-        ("T", "T"),
-        ("F", "F"),
-        ("x = x", "T"),
-        ("edg(x, x)", "F"),
-        ("x = y", "((x@1 <-> y@1) & (x@2 <-> y@2))"),
-        (
-            "edg(x, y)",
-            "(((x@1 & y@1) | (x@2 & y@2)) & (~ ((x@1 <-> y@1) & (x@2 <-> y@2))))",
-        ),
-        (
-            "x = y | edg(x, y)",
-            "(((x@1 <-> y@1) & (x@2 <-> y@2)) | (((x@1 & y@1) | (x@2 & y@2)) & (~ ((x@1 <-> y@1) & (x@2 <-> y@2)))))",
-        ),
-        ("! [x] : x = y", "((((T <-> y@1) & (F <-> y@2)) & ((T <-> y@1) & (T <-> y@2))) & ((F <-> y@1) & (T <-> y@2)))"),
-        ("? [x] : x = y", "((((T <-> y@1) & (F <-> y@2)) | ((T <-> y@1) & (T <-> y@2))) | ((F <-> y@1) & (T <-> y@2)))"),
-    ]
-
-    NameMgr.clear()
-    #  | 1 2
-    #--------
-    # 1| 1 0
-    # 2| 1 1
-    # 3| 0 1
-    vertex_list = [1,2,3]
-    edge_list= [(1,2), (2,3)]
-    st = GrSt(vertex_list, edge_list)
-
-    for test_str, expected in tests:
-        res = Fog.read(test_str)
-        res = op.perform_boolean_encoding(res, st)
-        res_str = op.to_str(res)
-        assert res_str == expected, f"{res_str}, {expected}"
-
-def test_perform_boolean_encoding_partitioning_order():
-    tests = [
-        ("T", "T"),
-        ("F", "F"),
-        ("x = x", "T"),
-        ("edg(x, x)", "F"),
-        ("x = y", "((x@1 <-> y@1) & (x@2 <-> y@2))"),
-        (
-            "edg(x, y)",
-            "(((x@1 & y@1) | (x@2 & y@2)) & (~ ((x@1 <-> y@1) & (x@2 <-> y@2))))",
-        ),
-        (
-            "x = y | edg(x, y)",
-            "(((x@1 <-> y@1) & (x@2 <-> y@2)) | (((x@1 & y@1) | (x@2 & y@2)) & (~ ((x@1 <-> y@1) & (x@2 <-> y@2)))))",
-        ),
-        (
-            "! [x] : x = y",
-            "(((T <-> y@1) & (F <-> y@2)) & (((T <-> y@1) & (T <-> y@2)) & ((F <-> y@1) & (T <-> y@2))))",
-        ),
-        (
-            "? [x] : x = y",
-            "(((T <-> y@1) & (F <-> y@2)) | (((T <-> y@1) & (T <-> y@2)) | ((F <-> y@1) & (T <-> y@2))))",
-        ),
-    ]
-
-    NameMgr.clear()
-    Fog.partitioning_order = True
-    Prop.partitioning_order = True
-    #  | 1 2
-    #--------
-    # 1| 1 0
-    # 2| 1 1
-    # 3| 0 1
-    vertex_list = [1,2,3]
-    edge_list= [(1,2), (2,3)]
-    st = GrSt(vertex_list, edge_list)
-
-    for test_str, expected in tests:
-        res = Fog.read(test_str)
-        res = op.perform_boolean_encoding(res, st)
-        res_str = op.to_str(res)
-        assert res_str == expected, f"{res_str}, {expected}"
-
-    Fog.partitioning_order = False
-    Prop.partitioning_order = False

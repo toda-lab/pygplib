@@ -11,7 +11,8 @@ class SymRelSt(BaseRelSt):
     There is no function symbol.
     """
 
-    def __init__(self, objects: tuple[int], relation: tuple[tuple[int]]):
+    def __init__(self, objects: tuple[int], relation: tuple[tuple[int]],\
+        msg: str = ""):
         """Initializes an object of SymRelSt class.
 
         Initializes a structure so that each object in domain of discourse is 
@@ -56,26 +57,28 @@ class SymRelSt(BaseRelSt):
             objects: a domain of discourse, a tuple of constant symbol indices
             relation: a tuple of (non-empty) relation instances, 
             where each instance need not be ordered.
+            msg: message printed when assertion failed
         """
         if len(objects) != len(set(objects)):
-            raise Exception(f"duplicate object found: {objects}")
+            raise Exception(f"duplicate object found: "+msg)
         for obj in objects:
             if not NameMgr.has_name(obj):
                 raise ValueError(\
-                    f"object {obj}, given as symbol index, has no name.")
+                    f"object {obj}, given as symbol index, has no name: "+msg)
             if not NameMgr.is_constant(obj):
                 raise ValueError(\
-                    f"{NameMgr.lookup_name(obj)} is not a constant symbol.")
+                    f"{NameMgr.lookup_name(obj)} is not a constant symbol: "+msg)
         for inst in relation:
             if len(set(inst)) != len(inst):
-                raise Exception(f"duplicate objcect found: {inst}")
+                raise Exception(f"duplicate object found: "+msg)
             if False in list(map(lambda i: i > 0, inst)):
-                raise Exception(f"invalid relation instance: {inst}")
+                raise Exception(f"invalid relation instance: "+msg)
 
         super().__init__(\
             objects, \
             type(self)._compute_dual_hypergraph(objects, relation), \
-            len(relation))
+            len(relation),\
+            msg=msg)
 
     @staticmethod
     def _compute_dual_hypergraph(vertices: tuple[int], \

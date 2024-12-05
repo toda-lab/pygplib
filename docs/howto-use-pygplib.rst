@@ -411,18 +411,6 @@ A ``Cnf`` object manages the index mapping between
 *internal* CNF variables (those in propositional formulas in ``[g, ] + li``)
 and *external* CNF variables (those in the output DIMACS CNF).
 
-A ``Cnf`` object provides the following instance methods.
-
-- ``get_nvars()``: returns the number of CNF variables (in other words, the
-  maximum index of an external CNF variable)
-- ``get_ncls()``: returns the number of clauses
-- ``get_clause(i)``: returns the ``i``-th clause, a tuple of nonzero-integers
-  (indices of external CNF variables),
-  where ``i`` ranges from ``0`` to the number of clauses minus ``1``.
--  ``write(stream=stdout)``: generates a CNF in DIMACS format to stream (``stdout`` if not given).
-- ``decode_assignment(assign)``: decodes the assignment of DIMACS CNF
-  variables (external CNF variables), ``assign``, to the assignment of internal CNF variables.
-
 The easiest way to solve CNF would be to use 
 ``pysat``, `a toolkit for SAT-based prototyping in Python <https://pysathq.github.io/>`__ .
 The ``pygplib`` in itself does not provide any functionality of 

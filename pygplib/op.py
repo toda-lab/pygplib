@@ -2,6 +2,7 @@
 
 import sys
 import warnings
+from typing import Iterable
 
 from .absexpr  import AbsExpr
 from .absexpr  import IndexGen
@@ -20,7 +21,38 @@ def generator(f: AbsExpr, skip_shared: bool = False):
     occurences of each such subformula are ignored.
 
     Note:
-        It would be safe to call generator with skip_shared False for
+        It would be safe to call with skip_shared False for
+        first-order formulas. Consider, for instance,  (? [x] : x) & x.
+        Since the second and the third occurrences of x are shared,
+        the third occurence of x is skipped if skip_shared is enabled.
+        However, there are cases for which the third one should be treated
+        separately from the second one.
+        For instance, consider computing all free variables from the above
+        formula. If the third occurrence of x is skipped, no free variable
+        will be mistakenly output.
+
+    Args:
+        f: formula to be traversed
+        skip_shared: indicates whether shared formulas are skipped.
+
+    Yields:
+        (i, subexpr): when subexpr appears in prefix order (for i=0),
+        in infix order (for i=1), and in postfix order (for i=2).
+    """
+    warn_msg = "`generator()` has been deprecated and will be removed in v3.0.0"
+    warnings.warn(warn_msg, UserWarning)
+    return generate_subformulas(f, skip_shared=skip_shared)
+
+def generate_subformulas(f: AbsExpr, skip_shared: bool = False):
+    """Yeilds all subformulas with left subformula first.
+
+    If skip_shared is set True, shared subformulas are
+    skipped, that is, if there are multiple occurrences of
+    a synactically identical subformula, the second or later
+    occurences of each such subformula are ignored.
+
+    Note:
+        It would be safe to call with skip_shared False for
         first-order formulas. Consider, for instance,  (? [x] : x) & x.
         Since the second and the third occurrences of x are shared,
         the third occurence of x is skipped if skip_shared is enabled.
@@ -43,7 +75,7 @@ def generator(f: AbsExpr, skip_shared: bool = False):
     subexpr = f
 
     while True:
-        if subexpr.is_atom_term() or (skip_shared and subexpr in done):
+        if subexpr.is_atom() or (skip_shared and subexpr in done):
 
             if not (skip_shared and subexpr in done):
                 yield (0, subexpr)
@@ -57,7 +89,7 @@ def generator(f: AbsExpr, skip_shared: bool = False):
                     return
                 i, subexpr = s.pop()
                 assert not (skip_shared and subexpr in done)
-                if i == 0 and subexpr.is_binop_term():
+                if i == 0 and subexpr.is_binop():
                     s.append([1, subexpr])
                     yield (1, subexpr)
                     # right subformula
@@ -69,6 +101,14 @@ def generator(f: AbsExpr, skip_shared: bool = False):
             # left subformula first
             subexpr = subexpr.get_operand(1)
 
+def compute_size(f: AbsExpr) -> int:
+    """Computes the total number of operators and atoms."""
+    res = 0
+    for i, subexpr in generate_subformulas(f):
+        if i == 0:
+            res += 1
+            continue
+    return res
 
 def to_str(f: AbsExpr) -> str:
     """Converts formula into string.
@@ -78,7 +118,7 @@ def to_str(f: AbsExpr) -> str:
     """
     out = ""
 
-    for i, subexpr in generator(f):
+    for i, subexpr in generate_subformulas(f):
         if i == 0:
             out += subexpr.make_str_pre_step()
         elif i == 1:
@@ -109,20 +149,20 @@ def print_formula(f: AbsExpr, stream=None, graph_name="output", fmt="str") -> No
         raise Exception(f"invalid format {format}")
 
     out = "digraph " + f"{graph_name}" + " {\n"
-    for i, g in generator(f, skip_shared=True):
+    for i, g in generate_subformulas(f, skip_shared=True):
         if i == 0:
             out += "\t" + f"{id(g)} [label = {g.make_node_str_step()}]\n"
         elif i == 1:
             continue
         elif i == 2:
-            if g.is_binop_term():
+            if g.is_binop():
                 out += f"\t{id(g)}" + " -> " + f"{id(g.get_operand(1))}\n"
                 out += f"\t{id(g)}" + " -> " + f"{id(g.get_operand(2))}\n"
-            elif g.is_unop_term():
+            elif g.is_unop():
                 out += f"\t{id(g)}" + " -> " + f"{id(g.get_operand(1))}\n"
-            elif g.is_atom_term():
+            elif g.is_atom():
                 continue
-            elif isinstance(g, AbsFo) and g.is_qf_term():
+            elif isinstance(g, AbsFo) and g.is_qf():
                 out += f"\t{id(g)}" + " -> " + f"{id(g.get_operand(1))}\n"
             else:
                 raise Exception(f"unexpected term: {g.gen_key()}")
@@ -191,7 +231,7 @@ def reduce_formula(f: AbsExpr, st: BaseRelSt = None) -> AbsExpr:
     nnf = compute_nnf(f)
 
     assoc = {}
-    for i, g in generator(nnf, skip_shared=True):
+    for i, g in generate_subformulas(nnf, skip_shared=True):
         if i != 2:
             continue
         if id(g) in assoc:
@@ -229,7 +269,7 @@ def get_free_vars_and_consts(expr: AbsFo) -> tuple:
     free_vars = []  # free variables and constaints
     # Note: Do not make skip_shared True. Otherwise, the method,
     # when applied to say (? [x] : x) & x, mistakenly returns no free variable.
-    for i, g in generator(expr):
+    for i, g in generate_subformulas(expr):
         if i == 0:
             g.get_free_vars_and_consts_pre_step(bound_vars, free_vars)
             continue
@@ -266,14 +306,14 @@ def substitute(expr: AbsFo, y: int, x: int) -> AbsFo:
     # Note: Do not make skip_shared True. Otherwise, the method,
     # when applied to say (? [x] : x) & x, mistakenly returns (? [x] : x) & x.
     # The correct result must be (? [x] : x) & y.
-    for i, g in generator(expr):
+    for i, g in generate_subformulas(expr):
         if i == 0:
-            if g.is_forall_term() or g.is_exists_term():
+            if g.is_forall() or g.is_exists():
                 if g.get_bound_var() == x:
                     nof_bound += 1
             continue
         if i == 2:
-            if g.is_forall_term() or g.is_exists_term():
+            if g.is_forall() or g.is_exists():
                 if g.get_bound_var() == x:
                     nof_bound -= 1
             if id(g) in assoc:
@@ -295,7 +335,7 @@ def _eliminate_qf_step(
     to import op module, which results in circular import.
     """
 
-    if expr.is_neg_term():
+    if expr.is_neg():
         g = assoc[id(expr.get_operand(1))]
         assoc[id(expr)] = type(expr).neg(g)
         return
@@ -305,23 +345,23 @@ def _eliminate_qf_step(
         return
 
     if (
-        expr.is_land_term()
-        or expr.is_lor_term()
-        or expr.is_implies_term()
-        or expr.is_iff_term()
+        expr.is_land()
+        or expr.is_lor()
+        or expr.is_implies()
+        or expr.is_iff()
     ):
         left = assoc[id(expr.get_operand(1))]
         right = assoc[id(expr.get_operand(2))]
         assoc[id(expr)] = type(expr).binop(expr.get_tag(), left, right)
         return
 
-    if expr.is_forall_term() or expr.is_exists_term():
+    if expr.is_forall() or expr.is_exists():
         bvar = expr.get_bound_var()
         g = assoc[id(expr.get_operand(1))]
 
         li = [substitute(g, d, bvar) for d in const_symb_tup]
 
-        if expr.is_forall_term():
+        if expr.is_forall():
             acc = type(expr).binop_batch(type(expr).get_land_tag(), li)
         else:
             acc = type(expr).binop_batch(type(expr).get_lor_tag(), li)
@@ -329,7 +369,7 @@ def _eliminate_qf_step(
         assoc[id(expr)] = acc
         return
 
-    if expr.is_edg_atom() or expr.is_eq_atom():
+    if expr.is_edg_atom() or expr.is_eq_atom() or expr.is_lt_atom():
         assoc[id(expr)] = expr
         return
 
@@ -355,7 +395,7 @@ def eliminate_qf(expr: AbsFo, st: BaseRelSt) -> AbsFo:
     const_symb_tup = st.domain
 
     assoc = {}
-    for i, g in generator(expr):
+    for i, g in generate_subformulas(expr):
         if i != 2:
             continue
         if id(g) in assoc:
@@ -364,6 +404,59 @@ def eliminate_qf(expr: AbsFo, st: BaseRelSt) -> AbsFo:
 
     assert id(expr) in assoc
     return assoc[id(expr)]
+
+def _check_no_missing_variable_in_prop(f: Prop, st: BaseRelSt):
+    """Checks whether there is no missing variable in prop formula.
+
+    Checks whether there is no propositional variable px[i] such that
+    for some first-order variable x, px[j] occurs in f but px[i] does not,
+    where px is the list of propositional variables of x.
+    """
+    prop_var_list = [
+        g.get_var_index()
+        for i, g in generate_subformulas(f, skip_shared=True)
+        if i == 2 and g.is_var_atom()
+    ]
+    fo_var_list = [st.get_variable_position_pair(p)[0]\
+        for p in prop_var_list if st.is_decodable_boolean_var(p)]
+    for x in fo_var_list:
+        for p in st.get_boolean_var_list(x):
+            assert p in prop_var_list
+
+def _check_no_missing_variable_in_assign(assign: list, st: BaseRelSt):
+    """Checks whether there is no missing variable in assign of internal variables.
+
+    Checks whether there is no cnf variable px[i] such that
+    for some first-order variable x, px[j] occurs in f but px[i] does not,
+    where px is the list of propositional variables of x.
+    """
+    prop_var_set = set()
+    for lit in assign: 
+        var = abs(lit)
+        if st.is_decodable_boolean_var(var):
+            prop_var_set.add(var)
+    fo_var_list = [st.get_variable_position_pair(p)[0] for p in prop_var_set]
+    for x in fo_var_list:
+        for p in st.get_boolean_var_list(x):
+            assert p in prop_var_set
+
+def _check_no_missing_variable_in_cnf(cnf: list, st: BaseRelSt):
+    """Checks whether there is no missing variable in cnf of internal variables.
+
+    Checks whether there is no cnf variable px[i] such that
+    for some first-order variable x, px[j] occurs in f but px[i] does not,
+    where px is the list of propositional variables of x.
+    """
+    prop_var_set = set()
+    for clause in cnf:
+        for lit in clause:
+            var = abs(lit)
+            if st.is_decodable_boolean_var(var):
+                prop_var_set.add(var)
+    fo_var_list = [st.get_variable_position_pair(p)[0] for p in prop_var_set]
+    for x in fo_var_list:
+        for p in st.get_boolean_var_list(x):
+            assert p in prop_var_set
 
 def perform_boolean_encoding(f: AbsFo, st: BaseRelSt) -> Prop:
     """Converts a first-order formula into an equiv. propositional formula.
@@ -386,7 +479,7 @@ def perform_boolean_encoding(f: AbsFo, st: BaseRelSt) -> Prop:
     qf_free = eliminate_qf(f, st)
 
     assoc = {}
-    for i, g in generator(qf_free, skip_shared=True):
+    for i, g in generate_subformulas(qf_free, skip_shared=True):
         if i != 2:
             continue
         if id(g) in assoc:
@@ -417,10 +510,8 @@ def propnize(f: AbsFo, st: BaseRelSt) -> Prop:
 
     return perform_boolean_encoding(f, st)
 
-
-
 # Propositional Logic Methods
-def compute_cnf(tup: tuple) -> tuple[int, int, tuple[tuple[int, ...], ...]]:
+def compute_cnf(expr_list: Iterable) -> tuple[int, int, tuple[tuple[int, ...], ...]]:
     """Computes Conjunction Normal Form for the tuple of formulas.
 
     Note:
@@ -437,33 +528,27 @@ def compute_cnf(tup: tuple) -> tuple[int, int, tuple[tuple[int, ...], ...]]:
         * the number of auxiliary variables introduced during CNF-encoding,
         * a tuple of clauses, each clause is a tuple of variable indices.
     """
-    if type(tup) is not tuple:
-        raise TypeError("Tuple of Props must be given as input argument.")
-    if tup == ():
-        raise TypeError("Tuple must be non-empty")
-    if False in [issubclass(type(f), Prop) for f in tup]:
+    if False in [issubclass(type(f), Prop) for f in expr_list]:
         raise TypeError(
             "Expression must be \
             an instance of Prop or its subclass"
         )
-
-    expr_list = [reduce_formula(f) for f in tup]
-
-    if type(tup[0]).false_const() in expr_list:
+    expr_list = [reduce_formula(f) for f in expr_list]
+    if len(expr_list) == 0:
+        raise Exception("empty list is given")
+    if type(expr_list[0]).false_const() in expr_list:
         return 0, 0, ((),)  # UNSAT
-
     # the largest index of variables appearing in formulas
     base = 0
     for f in expr_list:
         var_list = [
             g.get_var_index()
-            for i, g in generator(f, skip_shared=True)
+            for i, g in generate_subformulas(f, skip_shared=True)
             if i == 2 and g.is_var_atom()
         ]
         if var_list != []:
             val = max(var_list)
             base = val if base < val else base
-
     # next index of aux. variable
     igen = IndexGen(base + 1)
     cnf = []
@@ -472,15 +557,13 @@ def compute_cnf(tup: tuple) -> tuple[int, int, tuple[tuple[int, ...], ...]]:
         if f.is_true_atom():
             continue
         assoc = {}
-        for i, g in generator(f, skip_shared=True):
+        for i, g in generate_subformulas(f, skip_shared=True):
             if i != 2:
                 continue
             if id(g) in assoc:
                 continue
             g.compute_cnf_step(igen, assoc, cnf)
-
         assert id(f) in assoc
         cnf.append((assoc[id(f)],))
-
     naux = igen.get_count()  # nof aux. variables
     return base, naux, tuple(cnf)

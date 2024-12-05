@@ -12,6 +12,7 @@ from .baserelst import BaseRelSt
 from .cnf import Cnf
 from .ecc import Ecc
 from .name import NameMgr
+from .absexpr import IndexGen
 
 __all__ = [
     "Prop",
@@ -22,4 +23,5 @@ __all__ = [
     "BaseRelSt",
     "SymRelSt",
     "op",
+    "IndexGen",
 ]

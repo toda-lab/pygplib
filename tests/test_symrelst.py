@@ -51,7 +51,7 @@ def test_init():
             assert st._object_to_pos(st._pos_to_object(pos)) == pos
 
 
-def test_get_boolean_var():
+def test_boolean_encoding():
 
     domain = (1,3,2)
     relation = ((1,2), (3,2),(3,1))
@@ -64,64 +64,25 @@ def test_get_boolean_var():
             f"test case include object {obj} outside universe."
 
     st = SymRelSt(domain, relation)
-    for obj in domain:
-        name = NameMgr.lookup_name(obj)
-        index_list = [NameMgr.lookup_index(f"{name}@{pos+1}") \
-                    for pos in range(st.code_length)]
+    var_set = {NameMgr.lookup_index(name) for name in ["x", "y", "z"]}
+    boolean_var_set = set()
+    for i in var_set:
         for pos in range(st.code_length):
-            assert st.get_boolean_var(obj, pos) == index_list[pos]
-
-def test_get_symbol_index():
-
-    domain = (1,3,2)
-    relation = ((1,2), (3,2),(3,1))
-    NameMgr.clear()
-    max_obj = 4
-    universe = set([NameMgr.lookup_index(f"V{i+1}")\
-                for i in range(max_obj)])
-    for obj in domain:
-        assert obj in universe, \
-            f"test case include object {obj} outside universe."
-
-    st = SymRelSt(domain, relation)
-    for obj in domain:
-        name = NameMgr.lookup_name(obj)
-        index_list = [NameMgr.lookup_index(f"{name}@{pos+1}") \
-                    for pos in range(st.code_length)]
-        for i in index_list:
-            assert st.get_symbol_index(i) == obj
-
-def test_get_code_pos():
-
-    domain = (1,3,2)
-    relation = ((1,2), (3,2),(3,1))
-    NameMgr.clear()
-    max_obj = 4
-    universe = set([NameMgr.lookup_index(f"V{i+1}")\
-                for i in range(max_obj)])
-    for obj in domain:
-        assert obj in universe, \
-            f"test case include object {obj} outside universe."
-
-    st = SymRelSt(domain, relation)
-    for obj in domain:
-        name = NameMgr.lookup_name(obj)
-        index_list = [NameMgr.lookup_index(f"{name}@{pos+1}") \
-                    for pos in range(st.code_length)]
-        for pos, i in enumerate(index_list):
-            assert st.get_code_pos(i) == pos
-
+            v = st.get_boolean_var(i, pos)
+            assert (i,pos) == st.get_variable_position_pair(v)
+            boolean_var_set.add(v)
+    assert len(boolean_var_set) == len(var_set)*st.code_length
 
 def test_decode_assignment():
 
     tests = [
-        ("-x@1,x@2", {"V3"}),
-        ("x@2,-x@1", {"V3"}),
-        ("-x@1,x@2,y@1,y@2", {"V3", "V1"}),
-        ("-x@1,y@1,x@2,y@2", {"V3", "V1"}),
-        ("-x@1,x@2,-y@1,y@2", {"V3"}),
-        ("-x@1,x@2,y@1,y@2,-z@1,-z@2", {"V3", "V1", "V4"}),
-        ("-x@1,x@2,y@1,y@2,-z@1,-z@2,w@1,-w@2", {"V3", "V1", "V4", "V2"}),
+        (lambda x,y,z,w: f"-{x[1]},{x[2]}", {"V3"}),
+        (lambda x,y,z,w: f"{x[2]},-{x[1]}", {"V3"}),
+        (lambda x,y,z,w: f"-{x[1]},{x[2]},{y[1]},{y[2]}", {"V3", "V1"}),
+        (lambda x,y,z,w: f"-{x[1]},{y[1]},{x[2]},{y[2]}", {"V3", "V1"}),
+        (lambda x,y,z,w: f"-{x[1]},{x[2]},-{y[1]},{y[2]}", {"V3"}),
+        (lambda x,y,z,w: f"-{x[1]},{x[2]},{y[1]},{y[2]},-{z[1]},-{z[2]}", {"V3", "V1", "V4"}),
+        (lambda x,y,z,w: f"-{x[1]},{x[2]},{y[1]},{y[2]},-{z[1]},-{z[2]},{w[1]},-{w[2]}", {"V3", "V1", "V4", "V2"}),
     ]
 
 
@@ -141,60 +102,33 @@ def test_decode_assignment():
         assert obj in universe, \
             f"test case include object {obj} outside universe."
     st = SymRelSt(domain,relation)
+    index_x = NameMgr.lookup_index("x")
+    x = [""] + [NameMgr.lookup_name(i) for i in st.get_boolean_var_list(index_x)]
+    index_y = NameMgr.lookup_index("y")
+    y = [""] + [NameMgr.lookup_name(i) for i in st.get_boolean_var_list(index_y)]
+    index_z = NameMgr.lookup_index("z")
+    z = [""] + [NameMgr.lookup_name(i) for i in st.get_boolean_var_list(index_z)]
+    index_w = NameMgr.lookup_index("w")
+    w = [""] + [NameMgr.lookup_name(i) for i in st.get_boolean_var_list(index_w)]
+    index_dict = {}
+    for i in st.get_boolean_var_list(index_x)\
+        + st.get_boolean_var_list(index_y)\
+        + st.get_boolean_var_list(index_z)\
+        + st.get_boolean_var_list(index_w):
+        index_dict[NameMgr.lookup_name(i)] = i
 
-    for test_str, expected in tests:
+    for func, expected in tests:
         assign = []
+        test_str = func(x,y,z,w)
         for name in test_str.split(","):
-            sign = 1
-            name = name.replace(" ", "")
+            name = name.strip()
+            if len(name) == 0:
+                continue
             if name[0] == "-":
-                sign = -1
-            name = name.replace("-", "")
-            NameMgr.lookup_index(name.split("@")[0])
-            index = NameMgr.lookup_index(name)
-            assign.append(sign * index)
+                assign.append( -1 * index_dict[name[1:]] )
+            else:
+                assign.append( index_dict[name]  )
         res = st.decode_assignment(assign)
-        elem_set = set()
-        for key in res:
-            elem_set.add(NameMgr.lookup_name(res[key]))
+        elem_set = {NameMgr.lookup_name(res[key])\
+            for key in st.decode_assignment(assign)}
         assert elem_set == expected
-
-def test_enc_dec():
-
-    tests = [
-        ("x@1", ("x", 1)),
-        ("x@2", ("x", 2)),
-        ("Va@1", ("Va", 1)),
-        ("V1_a@2", ("V1_a", 2)),
-    ]
-
-    #    | 1 2
-    #  --|----
-    #  1 | 1 1
-    #  2 | 1 0
-    #  3 | 0 1
-    #  4 | 0 0 
-    domain = (1,2,3,4)
-    relation = ((1,2), (1,3))
-    NameMgr.clear()
-    max_obj = 4
-    universe = set([NameMgr.lookup_index(f"V{i+1}")\
-                for i in range(max_obj)])
-    for obj in domain:
-        assert obj in universe, \
-            f"test case include object {obj} outside universe."
-    st = SymRelSt(domain,relation)
-
-    for test_str, expected in tests:
-        NameMgr.lookup_index(test_str.split("@")[0])
-        index = NameMgr.lookup_index(test_str)
-
-        assert st.exists_symbol(index)
-        res = st.get_symbol_index(index)
-        assert NameMgr.lookup_name(res) == expected[0]
-
-        pos = st.get_code_pos(index)
-        assert pos + 1 == expected[1]
-
-        assert st.exists_boolean_var(res, pos)
-        assert st.get_boolean_var(res, pos) == index

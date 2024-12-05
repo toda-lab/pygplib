@@ -16,7 +16,8 @@ class BaseRelSt(Be):
     """
 
     def __init__(self, \
-        objects: tuple[int], codes: tuple[tuple[int]], length: int):
+        objects: tuple[int], codes: tuple[tuple[int]], length: int,\
+        msg: str = ""):
         """Initializes an object of BaseRelSt class."""
         self.domain = objects
         """tuple of objects (constant symbol indices)"""
@@ -29,7 +30,7 @@ class BaseRelSt(Be):
         for pos, tup in enumerate(self._codes):
             if tup in self._pos:
                 raise Exception(f"the codes of position {self._pos[tup]} "\
-                +f"and {pos} coincides: {self._codes}")
+                +f"and {pos} coincides: {self._codes}: "+msg)
             self._pos[tup] = pos
         super().__init__(length)
 
@@ -55,33 +56,33 @@ class BaseRelSt(Be):
         """
 
         var_symb_set = {
-            self.get_symbol_index(abs(x)) \
-                    for x in assign if self.exists_symbol(abs(x))\
+            self.get_variable_position_pair(abs(x))[0] \
+                    for x in assign if self.is_decodable_boolean_var(abs(x))\
         }
 
         dic = {}  # dic to find set of code pos of value 1 from symbol index
-        for var in var_symb_set:
-            for bvar in self.get_boolean_var_list(var):
-                if (bvar in assign) and (-bvar in assign):
-                    raise Exception(f"Conflicting assign w.r.t {bvar}")
-                if bvar in assign:
-                    if var not in dic:
-                        dic[var] = set()
-                    pos = self.get_code_pos(bvar)
-                    dic[var].add(pos+1)
+        for x in var_symb_set:
+            for px in self.get_boolean_var_list(x):
+                if (px in assign) and (-px in assign):
+                    raise Exception(f"Conflicting assign w.r.t {px}")
+                if px in assign:
+                    if x not in dic:
+                        dic[x] = set()
+                    pos = self.get_variable_position_pair(px)[1]
+                    dic[x].add(pos+1)
                     continue
-                if -bvar in assign:
+                if -px in assign:
                     continue
-                raise Exception("Incomplete assign w.r.t {bvar}")
+                raise Exception(f"Incomplete assign w.r.t {px}: {NameMgr.lookup_name(x)}")
 
         result = {}
-        for var in var_symb_set:
-            if var not in dic:
-                dic[var] = set()
-            code = tuple(sorted(dic[var]))
+        for x in var_symb_set:
+            if x not in dic:
+                dic[x] = set()
+            code = tuple(sorted(dic[x]))
             if code not in self._pos:
                 raise Exception("No matching element")
-            result[var] = self._pos_to_object(self._pos[code])
+            result[x] = self._pos_to_object(self._pos[code])
 
         return result
 
