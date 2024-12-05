@@ -61,7 +61,9 @@ The encodings performed in this code block are described in more details in :ref
     mgr = Cnf( [g, ] + li, st=st)
 
 
-Let us import unigen, `UniGen approximately uniform sampler <https://github.com/meelgroup/unigen>`__ , 
+Let us import ``pysat``, 
+`a toolkit for SAT-based prototyping in Python <https://pysathq.github.io/>`__
+, and ``unigen``, `UniGen approximately uniform sampler <https://github.com/meelgroup/unigen>`__ , 
 and perform random sampling of solutions of the cnf. 
 (If necessary, install unigen module beforehand.)
 
@@ -86,8 +88,8 @@ and perform random sampling of solutions of the cnf.
             if solver.solve():
                 ext_full_assign = solver.get_model() # external CNF vars.
                 int_assign = mgr.decode_assignment(ext_full_assign) # internal CNF vars.
-                fo_assign = struct.decode_assignment(int_assign) # first-order vars.
-                ans = sorted([struct.object_to_vertex(fo_assign[key]) \
+                fo_assign = st.decode_assignment(int_assign) # first-order vars.
+                ans = sorted([st.object_to_vertex(fo_assign[key]) \
                                         for key in fo_assign.keys()])
                 print(ans)
             else:
