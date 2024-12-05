@@ -235,8 +235,8 @@ incidence matrix.
 
 .. code:: python
 
-   from pygplib from GrSt
-   from pygplib from NameMgr
+   from pygplib import GrSt
+   from pygplib import NameMgr
    # V1 --- V2
    #  \    /
    #   \  /

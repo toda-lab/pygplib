@@ -177,7 +177,7 @@ class Cnf:
             stream: stream (stdout if not specified) to which CNF is written.
             format: file format of cnf
         """
-        if self.nvar == 0 or len(self.cnf):
+        if self.nvar == 0 or len(self.cnf) == 0:
             raise Exception("cnf has no variable or no clause.")
         if stream == None:
             stream = sys.stdout
@@ -190,9 +190,9 @@ class Cnf:
                 name = NameMgr.lookup_name(obj)
                 dom.append(f"c domain {name}: "+" ".join(map(str, code)))
             enc = [
-                f"c enc {i+1} {NameMgr.lookup_name(self.decode_lit(i+1))}"
+                f"c enc {i+1} {NameMgr.lookup_name(self._decode_lit(i+1))}"
                 for i in range(self.nvar)
-                if self.decode_lit(i + 1) <= self.base
+                if self._decode_lit(i + 1) <= self.base
             ]
         body = [" ".join(map(str, clause)) + " 0" for clause in self.cnf]
         out = ""

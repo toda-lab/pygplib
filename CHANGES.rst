@@ -3,7 +3,7 @@
 CHANGES
 =======
 
-Version 2.3.1 - 2024-12-05
+Version 2.3.2 - 2024-12-05
 --------------------------
 
 Fixed
@@ -13,6 +13,7 @@ Fixed
 - absexpr.py: 1st argument (self) of is_unop method is added.
 - ecc.py: compute_separating_ecc method did not compute separating ecc, which is now corrected and tested.
 - cnf.py: all external indices from 1 to self.base are ensured to be decodable.
+- cnf.py: fix bug in write method 
 
 Changed
 ^^^^^^^
