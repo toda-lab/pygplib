@@ -8,6 +8,10 @@ Install Pygplib
 
     $ pip install pygplib
 
+    # The following third-party modules are necessary for solution sampling
+    $ pip install python-sat
+    $ pip install pyunigen
+
 Quick Example
 -------------
 
@@ -65,7 +69,6 @@ Let us import ``pysat``,
 `a toolkit for SAT-based prototyping in Python <https://pysathq.github.io/>`__
 , and ``unigen``, `UniGen approximately uniform sampler <https://github.com/meelgroup/unigen>`__ , 
 and perform random sampling of solutions of the cnf. 
-(If necessary, install unigen module beforehand.)
 
 .. code:: python
 
@@ -105,7 +108,7 @@ To overcome this, let us consider the following formula to which the constraint 
 .. code:: python
 
     f = Fog.read("x1<x2 & x2<x3"\
-                +"& (~ x1=x2) & (~ x1=x3) & (~ x2=x3)")
+                +"& (~ edg(x1,x2)) & (~ edg(x1,x3)) & (~ edg(x2,x3)) ")
 
 After that, let us encode it into CNF and perform sampling in the same way as described just above.
 Sampling for larger graphs would become more efficient.
