@@ -169,7 +169,7 @@ class AbsExpr:
         warnings.warn(warn_msg, UserWarning)
         return self.is_unop()
 
-    def is_unop() -> bool:
+    def is_unop(self) -> bool:
         """Is the top-most operator a unary operation ?"""
         return self.get_tag() in type(self)._UNOP_TAGS
 

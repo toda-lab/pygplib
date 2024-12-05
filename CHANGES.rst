@@ -3,13 +3,14 @@
 CHANGES
 =======
 
-Version 2.3.0 - 2024-12-05
+Version 2.3.1 - 2024-12-05
 --------------------------
 
 Fixed
 ^^^^^
 
 - absexpr.py: constant atoms of different classes (say, true constants of Prop and Fog) were represented as the same objects due to bug in _to_key method of absexpr.py, which are now distinguished by adding class name to key.
+- absexpr.py: 1st argument (self) of is_unop method is added.
 - ecc.py: compute_separating_ecc method did not compute separating ecc, which is now corrected and tested.
 - cnf.py: all external indices from 1 to self.base are ensured to be decodable.
 
