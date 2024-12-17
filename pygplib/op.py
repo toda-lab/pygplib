@@ -46,19 +46,30 @@ def generator(f: AbsExpr, skip_shared: bool = False):
 def generate_subformulas(f: AbsExpr, skip_shared: bool = False):
     """Yeilds all subformulas with left subformula first.
 
-    If skip_shared is set True, shared subformulas are
-    skipped, that is, if there are multiple occurrences of
-    a synactically identical subformula, the second or later
-    occurences of each such subformula are ignored.
+    It generates all occurrences of syntactically identical
+    subformulas by default.
+    If skip_shared is set True, it generate all different
+    subformulas.
 
     Note:
-        It would be safe to call with skip_shared False for
-        first-order formulas. Consider, for instance,  (? [x] : x) & x.
-        Since the second and the third occurrences of x are shared,
-        the third occurence of x is skipped if skip_shared is enabled.
-        However, there are cases for which the third one should be treated
+        This method is not supposed to be given formulas including
+        quantifiers.
+        Theoretically speaking, generating all subformulas of a quantified
+        formula (say ?[x]: f) means generating not only subformulas of f
+        (and ?[x]: f itself) but also those of f[t/x] for any term t free 
+        for x in f.
+        This method generates subformulas of the former case but it
+        does not generate those of the latter case.
+        If you really want to give quantified formulas,
+        we recommend not to set skip_shared True. 
+        To see this, let us consider what happens when
+        (? [x] : x) & x is given and skip_shared is mistakenly set True.
+        Since the second and the third occurrences of x are shared
+        in the graphical representation of this formula,
+        the third occurence of x is skipped.
+        However, there are situations in which the third one should be treated
         separately from the second one.
-        For instance, consider computing all free variables from the above
+        For instance, let us consider computing all free variables from the above
         formula. If the third occurrence of x is skipped, no free variable
         will be mistakenly output.
 
@@ -231,7 +242,7 @@ def reduce_formula(f: AbsExpr, st: BaseRelSt = None) -> AbsExpr:
     nnf = compute_nnf(f)
 
     assoc = {}
-    for i, g in generate_subformulas(nnf, skip_shared=True):
+    for i, g in generate_subformulas(nnf):
         if i != 2:
             continue
         if id(g) in assoc:

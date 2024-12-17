@@ -3,6 +3,16 @@
 CHANGES
 =======
 
+Version 2.4.3 - 2024-12-17
+--------------------------
+
+Changed
+^^^^^^^
+
+- improve the comment of generate_subformulas.
+- change to disable skip_shared option in some invocations of generate_subformulas to make it safer.
+
+
 Version 2.4.2 - 2024-12-17
 --------------------------
 
@@ -10,7 +20,6 @@ Changed
 ^^^^^^^
 
 - change compute_cnf method to admit, as its arguments, not only list of Prop formulas but also a Prop formula.
-
 
 Added
 ^^^^^
