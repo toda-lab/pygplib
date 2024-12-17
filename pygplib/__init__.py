@@ -4,7 +4,7 @@ import importlib.metadata
 
 __version__ = importlib.metadata.version(__package__)
 
-from .prop import Prop
+from .prop import Prop, Props
 from .fog import Fog
 from .grst import GrSt
 from .symrelst import SymRelSt
@@ -15,6 +15,7 @@ from .name import NameMgr
 from .absexpr import IndexGen
 
 __all__ = [
+    "Props",
     "Prop",
     "Fog",
     "GrSt",

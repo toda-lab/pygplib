@@ -2,11 +2,11 @@
 
 import sys
 import warnings
-from typing import Iterable
+from collections.abc import Iterable
 
 from .absexpr  import AbsExpr
 from .absexpr  import IndexGen
-from .prop     import Prop
+from .prop     import Prop, Props
 from .absfo    import AbsFo
 from .name     import NameMgr
 from .baserelst import BaseRelSt
@@ -511,49 +511,58 @@ def propnize(f: AbsFo, st: BaseRelSt) -> Prop:
     return perform_boolean_encoding(f, st)
 
 # Propositional Logic Methods
-def compute_cnf(expr_list: Iterable) -> tuple[int, int, tuple[tuple[int, ...], ...]]:
-    """Computes Conjunction Normal Form for the tuple of formulas.
+def get_prop_vars(f: Prop) -> tuple:
+    """Gets all variables from Prop formula."""
+    return tuple(set([g.get_var_index()
+            for i, g in generate_subformulas(f, skip_shared=True)
+            if i == 2 and g.is_var_atom()]))
+
+def compute_cnf(data: Props) -> tuple[int, int, tuple[tuple[int, ...], ...]]:
+    """Computes Conjunction Normal Form for Props using Tsentin transformation.
+
+    Iterable[Prop] is considered as the conjunction of all Prop formulas.
+    The transformation is done so as to retain one-to-one correspondence
+    betweeen satisfying assignments of the original formula and those of CNF.
 
     Note:
-        Auxiliary variables introduced during CNF-encoding are
-        consecutively assigned indices, starting with the maximum index of
-        a Boolean variable in input formesssions plus one.
-        The output CNF consists of indices of Boolean variables in input
-        propositional formulas and indices of auxiliary variables.
+        Variable indices of CNF are divided into twos:
+        Those less than or equal to the maximum index of variables occuring in
+        input formula represent variables occurring in input formula.
+        The other indices represent auxiliary variables introduced in encoding.
+        There might be missing indices in CNF because not all indices 
+        consecutively starting from 1 occur in input formula.
 
     Returns:
         (int,int,tuple): a tuple containing, respectively,
 
-        * the maximum index of a Boolean variable in input formulas,
+        * the maximum index of variables occurring in input formula,
         * the number of auxiliary variables introduced during CNF-encoding,
         * a tuple of clauses, each clause is a tuple of variable indices.
     """
-    if False in [issubclass(type(f), Prop) for f in expr_list]:
-        raise TypeError(
-            "Expression must be \
-            an instance of Prop or its subclass"
-        )
-    expr_list = [reduce_formula(f) for f in expr_list]
-    if len(expr_list) == 0:
-        raise Exception("empty list is given")
-    if type(expr_list[0]).false_const() in expr_list:
+    if isinstance(data, Iterable):
+        if False in [isinstance(f,Prop) for f in data]:
+            raise TypeError
+        expr_li = [reduce_formula(f) for f in data]
+    elif isinstance(data, Prop):
+        expr_li = [reduce_formula(data)]
+    else:
+        raise TypeError
+    if len(expr_li) == 0:
+        raise Exception("empty formula given")
+    if Prop.false_const() in expr_li:
         return 0, 0, ((),)  # UNSAT
-    # the largest index of variables appearing in formulas
+    # the largest index of variables occurring in formulas
     base = 0
-    for f in expr_list:
-        var_list = [
-            g.get_var_index()
-            for i, g in generate_subformulas(f, skip_shared=True)
-            if i == 2 and g.is_var_atom()
-        ]
-        if var_list != []:
-            val = max(var_list)
+    for f in expr_li:
+        var_tup = get_prop_vars(f)
+        if len(var_tup) > 0:
+            val  = max(var_tup)
             base = val if base < val else base
     # next index of aux. variable
     igen = IndexGen(base + 1)
     cnf = []
-
-    for f in expr_list:
+    # cnf encoding
+    for f in expr_li:
         if f.is_true_atom():
             continue
         assoc = {}

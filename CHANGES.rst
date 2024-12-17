@@ -3,6 +3,21 @@
 CHANGES
 =======
 
+Version 2.4.2 - 2024-12-17
+--------------------------
+
+Changed
+^^^^^^^
+
+- change compute_cnf method to admit, as its arguments, not only list of Prop formulas but also a Prop formula.
+
+
+Added
+^^^^^
+
+- add get_prop_vars method.
+
+
 Version 2.3.2 - 2024-12-05
 --------------------------
 

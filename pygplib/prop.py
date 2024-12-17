@@ -1,4 +1,6 @@
 """Class of propositional logic"""
+from typing import TypeVar
+from collections.abc import Iterable
 
 import pyparsing as pp
 # Enables "packrat" parsing, which speedup parsing.
@@ -10,7 +12,6 @@ from .absexpr import IndexGen
 from .absprop import AbsProp
 from .name import NameMgr
 from .baserelst import BaseRelSt
-
 
 class Prop(AbsProp):
     """Expression of Propositional Logic
@@ -232,3 +233,5 @@ class Prop(AbsProp):
             prop_index = self.get_var_index()
             return f'"{NameMgr.lookup_name(prop_index)}"'
         return super().make_node_str_step()
+
+Props = TypeVar("Props", Prop, Iterable[Prop])

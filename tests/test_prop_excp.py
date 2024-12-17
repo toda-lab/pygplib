@@ -26,11 +26,10 @@ def test_format():
 
 def test_compute_cnf():
     tests = [
-        0,  # Tuple of Props must be given as input argument.
+        0,
         1,
         "x_1",
-        Prop.read("T"),
-        (Fog.read("T"),),  # Expression must be an instance of Prop or its subclass
+        (Fog.read("T"),),
         (
             Prop.read("T"),
             Fog.read("T"),
